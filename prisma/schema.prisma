@@ -1,0 +1,316 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider        = "prisma-client"
+  previewFeatures = ["driverAdapters"]
+  output          = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// BETTER AUTH TABLES
+// ============================================
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  name          String?
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Role-based access control
+  role   UserRole   @default(STUDENT)
+  status UserStatus @default(ACTIVE)
+
+  // Profile fields
+  bio   String?
+  phone String?
+
+  // Better Auth relations
+  accounts Account[]
+  sessions Session[]
+
+  // Application relations
+  tutorProfile      TutorProfile?
+  bookingsAsStudent Booking[]     @relation("StudentBookings")
+  bookingsAsTutor   Booking[]     @relation("TutorBookings")
+  reviews           Review[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id           String    @id @default(cuid())
+  accountId    String
+  providerId   String
+  userId       String
+  accessToken  String?   @db.Text
+  refreshToken String?   @db.Text
+  idToken      String?   @db.Text
+  expiresAt    DateTime?
+  password     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([identifier, value])
+  @@map("verifications")
+}
+
+// ============================================
+// APPLICATION TABLES
+// ============================================
+
+model TutorProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Tutor details
+  title       String // e.g., "Math Expert", "Python Developer"
+  headline    String? @db.Text // Short bio/tagline
+  description String? @db.Text // Detailed description
+
+  // Pricing
+  hourlyRate Decimal @db.Decimal(10, 2)
+
+  // Experience & Education
+  experience Int     @default(0) // Years of experience
+  education  String? @db.Text // Education background
+
+  // Stats
+  totalSessions Int      @default(0)
+  averageRating Decimal? @db.Decimal(3, 2)
+  totalReviews  Int      @default(0)
+
+  // Status
+  isAvailable Boolean @default(true)
+  isVerified  Boolean @default(false)
+
+  // Relations
+  categories   TutorCategory[]
+  availability Availability[]
+  bookings     Booking[]       @relation("TutorBookings")
+  reviews      Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isAvailable])
+  @@index([averageRating])
+  @@map("tutor_profiles")
+}
+
+model Category {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  slug        String  @unique
+  description String? @db.Text
+  icon        String? // Icon name or URL
+  color       String? // Hex color code
+
+  isActive Boolean @default(true)
+
+  tutors TutorCategory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("categories")
+}
+
+// Junction table for Many-to-Many relationship
+model TutorCategory {
+  id         String @id @default(cuid())
+  tutorId    String
+  categoryId String
+
+  tutor    TutorProfile @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  category Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  isPrimary Boolean @default(false) // Primary category for tutor
+
+  createdAt DateTime @default(now())
+
+  @@unique([tutorId, categoryId])
+  @@index([tutorId])
+  @@index([categoryId])
+  @@map("tutor_categories")
+}
+
+model Availability {
+  id      String       @id @default(cuid())
+  tutorId String
+  tutor   TutorProfile @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+
+  dayOfWeek DayOfWeek
+  startTime String // Format: "HH:mm" (e.g., "09:00")
+  endTime   String // Format: "HH:mm" (e.g., "17:00")
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tutorId])
+  @@index([dayOfWeek])
+  @@map("availability")
+}
+
+model Booking {
+  id String @id @default(cuid())
+
+  // Student
+  studentId String
+  student   User   @relation("StudentBookings", fields: [studentId], references: [id], onDelete: Cascade)
+
+  // Tutor
+  tutorId        String
+  tutor          User         @relation("TutorBookings", fields: [tutorId], references: [id], onDelete: Cascade)
+  tutorProfile   TutorProfile @relation("TutorBookings", fields: [tutorProfileId], references: [id], onDelete: Cascade)
+  tutorProfileId String
+
+  // Session details
+  subject     String
+  sessionDate DateTime
+  startTime   String // Format: "HH:mm"
+  endTime     String // Format: "HH:mm"
+  duration    Int // Duration in minutes
+
+  // Pricing
+  price Decimal @db.Decimal(10, 2)
+
+  // Status
+  status BookingStatus @default(PENDING)
+
+  // Notes
+  studentNotes String? @db.Text
+  tutorNotes   String? @db.Text
+
+  // Cancellation
+  cancelledBy  String?
+  cancelReason String?   @db.Text
+  cancelledAt  DateTime?
+
+  // Review
+  review Review?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId])
+  @@index([tutorId])
+  @@index([tutorProfileId])
+  @@index([status])
+  @@index([sessionDate])
+  @@map("bookings")
+}
+
+model Review {
+  id String @id @default(cuid())
+
+  bookingId String  @unique
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  tutorId String
+  tutor   TutorProfile @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+
+  rating  Int // 1-5 stars
+  comment String? @db.Text
+
+  // Tutor response
+  response    String?   @db.Text
+  respondedAt DateTime?
+
+  isVisible Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId])
+  @@index([tutorId])
+  @@index([rating])
+  @@index([createdAt])
+  @@map("reviews")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  STUDENT
+  TUTOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+  SUSPENDED
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum BookingStatus {
+  PENDING // Awaiting tutor confirmation
+  CONFIRMED // Tutor confirmed
+  COMPLETED // Session completed
+  CANCELLED // Cancelled by student or tutor
+  NO_SHOW // Student didn't show up
+}
