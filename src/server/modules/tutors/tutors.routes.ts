@@ -6,7 +6,7 @@ import { TutorController } from "./tutors.controller";
 const router = Router();
 
 router.post("/create-tutor",
-     authMiddleware(UserRole.STUDENT),
+     authMiddleware(UserRole.ADMIN),
       TutorController.create);
 router.get("/", TutorController.getAll);
 router.get("/:id", TutorController.getById);
