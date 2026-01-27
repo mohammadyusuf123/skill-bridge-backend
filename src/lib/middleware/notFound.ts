@@ -1,0 +1,11 @@
+import { Request, Response } from "express";
+
+
+//handle not found
+export const notFound = (req:Request,res:Response) => {
+    res.status(404).json({
+        message:"Route Not Found",
+        path:req.originalUrl,
+        date:new Date()
+    });
+};

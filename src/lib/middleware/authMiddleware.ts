@@ -37,7 +37,6 @@ export const authMiddleware = (...roles: UserRole[]) => {
       const session = await auth.api.getSession({
         headers: req.headers as any,
       });
-
       if (!session) {
         return res.status(401).json({
           success: false,
@@ -47,12 +46,12 @@ export const authMiddleware = (...roles: UserRole[]) => {
 
       const user = session.user as unknown as SessionUserWithRole;
 
-      if (!user.emailVerified) {
-        return res.status(401).json({
-          success: false,
-          message: "Email is not verified",
-        });
-      }
+    //   if (!user.emailVerified) {
+    //     return res.status(401).json({
+    //       success: false,
+    //       message: "Email is not verified",
+    //     });
+    //   }
 
       if (roles.length && !roles.includes(user.role)) {
         return res.status(403).json({
