@@ -7,6 +7,8 @@ import errorHandler from "../lib/middleware/globalErrorHandler";
 import { TutorRoutes } from "./modules/tutors/tutors.routes";
 import { BookingRoutes } from "./modules/booking/booking.routes";
 import { CategoryRoutes } from "./modules/tutor-category/tutor-category.routes";
+import { UserRoutes } from "./modules/user/user.routes";
+import { DashboardRoutes } from "./modules/dashboard/dashboard.routes";
 const app = express();
 
 app.use(cors({
@@ -19,13 +21,16 @@ app.use(express.json());
 
 // Auth routes 
 app.all('/api/auth/*splat', toNodeHandler(auth));
+// User routes
+app.use("/api/users", UserRoutes);
 // Booking routes
 app.use("/api/bookings", BookingRoutes);
 // Tutor category routes
  app.use("/api/tutor-categories", CategoryRoutes);
 // Tutors routes
 app.use("/api/tutors", TutorRoutes);
-
+// Dashboard routes
+app.use("/api/dashboard", DashboardRoutes);
 // Not found handler
 app.use(notFound);
 

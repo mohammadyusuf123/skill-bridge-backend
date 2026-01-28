@@ -33,4 +33,4 @@ router.delete('/:userId', authenticate, isAdmin, UserController.deleteUser);
 router.patch('/:userId/role', authenticate, isAdmin, validate(updateRoleValidation), UserController.updateUserRole);
 router.patch('/:userId/status', authenticate, isAdmin, validate(updateStatusValidation), UserController.updateUserStatus);
 
-export default router;
+export const UserRoutes = router;
