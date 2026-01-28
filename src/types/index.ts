@@ -144,3 +144,4 @@ export interface UpdateCategoryDto {
   color?: string;
   isActive?: boolean;
 }
+
