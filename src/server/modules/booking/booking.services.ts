@@ -1,7 +1,8 @@
-import { CreateBookingDto, UpdateBookingDto, BookingFilters } from '../../../types';
-import { calculateDuration } from '../../../utils/helper';
-import { prisma } from '../../../lib/prisma';
 import { Prisma } from '../../../../generated/prisma/client';
+import { prisma } from '../../../lib/prisma';
+import { BookingFilters, CreateBookingDto, UpdateBookingDto } from '../../../types';
+import { calculateDuration } from '../../../utils/helper';
+
 
 export class BookingService {
   /**
@@ -27,7 +28,7 @@ export class BookingService {
     const duration = calculateDuration(startTime, endTime);
     const price = (Number(tutorProfile.hourlyRate) * duration) / 60;
 
-    // Create booking
+    // Create booking with CONFIRMED status (instant confirmation)
     const booking = await prisma.booking.create({
       data: {
         studentId,
@@ -40,7 +41,7 @@ export class BookingService {
         duration,
         price,
         studentNotes,
-        status: 'PENDING',
+        status: 'CONFIRMED', // Instant confirmation
       },
       include: {
         student: {
@@ -71,44 +72,6 @@ export class BookingService {
 
     return booking;
   }
-
-  /**
-   * Get all booking 
-   */
-    async getAllBookings(page: number = 1, limit: number = 10) {
-    const skip = (page - 1) * limit;
-    const bookings = await prisma.booking.findMany({
-      skip,
-      take: limit,
-      include: {
-        student: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-          },
-        },
-        tutor: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-          },
-        },
-        tutorProfile: {
-          select: {
-            id: true,
-            title: true,
-            hourlyRate: true,
-          },
-        },
-      },
-    });
-    return bookings;
-  }
-          
 
   /**
    * Get booking by ID
@@ -278,7 +241,7 @@ export class BookingService {
       return updated;
     }
 
-    // Regular update
+    // Update booking status and notes
     const updated = await prisma.booking.update({
       where: { id: bookingId },
       data: {
@@ -302,16 +265,6 @@ export class BookingService {
         },
       },
     });
-
-    // Update tutor stats if completed
-    if (data.status === 'COMPLETED') {
-      await prisma.tutorProfile.update({
-        where: { id: booking.tutorProfileId },
-        data: {
-          totalSessions: { increment: 1 },
-        },
-      });
-    }
 
     return updated;
   }
@@ -345,6 +298,67 @@ export class BookingService {
         cancelledBy: userId,
         cancelReason: reason,
         cancelledAt: new Date(),
+      },
+    });
+
+    return updated;
+  }
+
+  /**
+   * Mark booking as complete (Tutor only)
+   */
+  async markAsComplete(bookingId: string, tutorId: string, tutorNotes?: string) {
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+    });
+
+    if (!booking) {
+      throw new Error('Booking not found');
+    }
+
+    if (booking.tutorId !== tutorId) {
+      throw new Error('Not authorized to complete this booking');
+    }
+
+    if (booking.status !== 'CONFIRMED') {
+      throw new Error('Can only complete confirmed bookings');
+    }
+
+    // Check if session date has passed
+    const sessionDateTime = new Date(booking.sessionDate);
+    if (sessionDateTime > new Date()) {
+      throw new Error('Cannot mark future bookings as complete');
+    }
+
+    const updated = await prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        status: 'COMPLETED',
+        tutorNotes,
+      },
+      include: {
+        student: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        tutor: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // Update tutor stats
+    await prisma.tutorProfile.update({
+      where: { id: booking.tutorProfileId },
+      data: {
+        totalSessions: { increment: 1 },
       },
     });
 

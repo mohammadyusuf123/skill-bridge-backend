@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
+import { authenticate } from '../../../lib/middleware/authMiddleware';
 import { validate } from '../../../lib/middleware/validation';
-import { authenticate, authorize, UserRole } from '../../../lib/middleware/authMiddleware';
-import bookingController from './booking.controller'; // Changed from { BookingController }
+import  BookingController  from '../booking/booking.controller';
 
 const router = Router();
 
@@ -27,14 +27,12 @@ const cancelBookingValidation = [
 ];
 
 // Protected routes
-router.get('/allbookings', authenticate, authorize(UserRole.ADMIN), bookingController.getAllBookings.bind(bookingController));
-router.post('/create', authenticate, authorize(UserRole.ADMIN, UserRole.TUTOR), validate(createBookingValidation), bookingController.createBooking.bind(bookingController));
-router.get('/my-bookings', authenticate, bookingController.getUserBookings.bind(bookingController));
-router.get('/stats', authenticate, bookingController.getBookingStats.bind(bookingController));
-
-// ⚠️ dynamic param routes always last
-router.get('/:bookingId', authenticate, bookingController.getBookingById.bind(bookingController));
-router.put('/:bookingId', authenticate, validate(updateBookingValidation), bookingController.updateBooking.bind(bookingController));
-router.post('/:bookingId/cancel', authenticate, validate(cancelBookingValidation), bookingController.cancelBooking.bind(bookingController));
+router.post('/', authenticate, validate(createBookingValidation), BookingController.createBooking);
+router.get('/my-bookings', authenticate, BookingController.getUserBookings);
+router.get('/stats', authenticate, BookingController.getBookingStats);
+router.get('/:bookingId', authenticate, BookingController.getBookingById);
+router.put('/:bookingId', authenticate, validate(updateBookingValidation), BookingController.updateBooking);
+router.post('/:bookingId/cancel', authenticate, validate(cancelBookingValidation), BookingController.cancelBooking);
+router.post('/:bookingId/complete', authenticate, BookingController.markAsComplete);
 
 export const BookingRoutes = router;

@@ -1,7 +1,7 @@
 import { Response, NextFunction } from 'express';
-import { AuthRequest } from '../../../types/index';
-import BookingService from './booking.services';
-import { successResponse, errorResponse } from '../../../utils/helper';
+import { AuthRequest } from '../../../types';
+import { errorResponse, successResponse } from '../../../utils/helper';
+import  BookingService  from './booking.services';
 
 export class BookingController {
   /**
@@ -24,21 +24,7 @@ export class BookingController {
       }
     }
   }
-  /**
-   * Get all bookings with filters
-   */
-  async getAllBookings(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-    console.log(res);
-    try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const bookings = await BookingService.getAllBookings(page, limit);
-      res.json(successResponse(bookings));
-    } catch (error) {
-      next(error);
-    }
-  } 
-   
+
   /**
    * Get booking by ID
    */
@@ -133,6 +119,30 @@ export class BookingController {
 
       const booking = await BookingService.cancelBooking(bookingId as string, req.user.id, reason);
       res.json(successResponse(booking, 'Booking cancelled successfully'));
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json(errorResponse(error.message));
+      } else {
+        next(error);
+      }
+    }
+  }
+
+  /**
+   * Mark booking as complete (Tutor only)
+   */
+  async markAsComplete(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json(errorResponse('Not authenticated'));
+        return;
+      }
+
+      const { bookingId } = req.params;
+      const { tutorNotes } = req.body;
+
+      const booking = await BookingService.markAsComplete(bookingId as string, req.user.id, tutorNotes);
+      res.json(successResponse(booking, 'Booking marked as complete'));
     } catch (error) {
       if (error instanceof Error) {
         res.status(400).json(errorResponse(error.message));
