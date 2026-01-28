@@ -6,6 +6,7 @@ import { notFound } from "../lib/middleware/notFound";
 import errorHandler from "../lib/middleware/globalErrorHandler";
 import { TutorRoutes } from "./modules/tutors/tutors.routes";
 import { TutorCategoryRoutes } from "./modules/tutor-category/tutor-category.routes";
+import { BookingRoutes } from "./modules/booking/booking.routes";
 const app = express();
 
 app.use(cors({
@@ -18,6 +19,8 @@ app.use(express.json());
 
 // Auth routes 
 app.all('/api/auth/*splat', toNodeHandler(auth));
+// Booking routes
+app.use("/api/bookings", BookingRoutes);
 // Tutor category routes
  app.use("/api/tutor-categories", TutorCategoryRoutes);
 // Tutors routes
