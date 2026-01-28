@@ -12,7 +12,7 @@ import { DashboardRoutes } from "./modules/dashboard/dashboard.routes";
 const app = express();
 
 app.use(cors({
-    origin: "http://localhost:3000",
+    origin: process.env.APP_URL || "http://localhost:3000",
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
 }));
