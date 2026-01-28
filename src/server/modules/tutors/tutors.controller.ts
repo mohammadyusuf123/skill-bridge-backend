@@ -1,57 +1,151 @@
-import { Request, Response } from "express";
-import { TutorService } from "./tutors.services";
+import { Response, NextFunction } from 'express';
+import { AuthRequest } from '../../../types';
+import TutorService from './tutors.services';
+import { successResponse, errorResponse } from '../../../utils/helper';
 
+export class TutorController {
+  /**
+   * Create tutor profile
+   */
+  async createProfile(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json(errorResponse('Not authenticated'));
+        return;
+      }
 
-export const TutorController = {
-  create: async (req: Request, res: Response) => {
-    console.log(req.user);
-    const userId = req.user!.id;
-
-    const tutor = await TutorService.createTutorProfile(userId, req.body);
-
-    res.status(201).json({
-      success: true,
-      data: tutor,
-    });
-  },
-
-  getAll: async (req: Request, res: Response) => {
-    const tutors = await TutorService.getAllTutors({
-      isAvailable: req.query.isAvailable
-        ? req.query.isAvailable === "true"
-        : undefined,
-      categoryId: req.query.categoryId as string | undefined,
-    });
-
-    res.json({
-      success: true,
-      data: tutors,
-    });
-  },
-
-  getById: async (req: Request, res: Response) => {
-    const tutor = await TutorService.getTutorById(req.params.id as string);
-
-    if (!tutor) {
-      return res.status(404).json({ message: "Tutor not found" });
+      const profile = await TutorService.createProfile(req.user.id, req.body);
+      res.status(201).json(successResponse(profile, 'Tutor profile created successfully'));
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json(errorResponse(error.message));
+      } else {
+        next(error);
+      }
     }
+  }
 
-    res.json({ success: true, data: tutor });
-  },
+  /**
+   * Get own tutor profile
+   */
+  async getOwnProfile(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json(errorResponse('Not authenticated'));
+        return;
+      }
 
-  update: async (req: Request, res: Response) => {
-    const tutor = await TutorService.updateTutorProfile(
-      req.params.id as string,
-      req.user!.id,
-      req.body
-    );
+      const profile = await TutorService.getProfileByUserId(req.user.id);
+      res.json(successResponse(profile));
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(404).json(errorResponse(error.message));
+      } else {
+        next(error);
+      }
+    }
+  }
 
-    res.json({ success: true, data: tutor });
-  },
+  /**
+   * Get tutor profile by user ID
+   */
+  async getProfileByUserId(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { userId } = req.params;
+      const profile = await TutorService.getProfileByUserId(userId as string);
+      res.json(successResponse(profile));
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(404).json(errorResponse(error.message));
+      } else {
+        next(error);
+      }
+    }
+  }
 
-  remove: async (req: Request, res: Response) => {
-    await TutorService.deleteTutorProfile(req.params.id as string, req.user!.id);
+  /**
+   * Get tutor profile by ID
+   */
+  async getProfileById(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { tutorId } = req.params;
+      const profile = await TutorService.getProfileById(tutorId as string);
+      res.json(successResponse(profile));
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(404).json(errorResponse(error.message));
+      } else {
+        next(error);
+      }
+    }
+  }
 
-    res.status(204).send();
-  },
-};
+  /**
+   * Update tutor profile
+   */
+  async updateProfile(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json(errorResponse('Not authenticated'));
+        return;
+      }
+
+      const profile = await TutorService.updateProfile(req.user.id, req.body);
+      res.json(successResponse(profile, 'Profile updated successfully'));
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json(errorResponse(error.message));
+      } else {
+        next(error);
+      }
+    }
+  }
+
+  /**
+   * Search tutors
+   */
+  async searchTutors(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const sortBy = (req.query.sortBy as string) || 'averageRating';
+
+      const filters = {
+        categoryId: req.query.categoryId as string | undefined,
+        minRate: req.query.minRate ? parseFloat(req.query.minRate as string) : undefined,
+        maxRate: req.query.maxRate ? parseFloat(req.query.maxRate as string) : undefined,
+        minRating: req.query.minRating ? parseFloat(req.query.minRating as string) : undefined,
+        isAvailable: req.query.isAvailable === 'true',
+        search: req.query.search as string | undefined,
+      };
+
+      const result = await TutorService.searchTutors(filters, page, limit, sortBy);
+      res.json(successResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Toggle tutor availability
+   */
+  async toggleAvailability(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json(errorResponse('Not authenticated'));
+        return;
+      }
+
+      const profile = await TutorService.toggleAvailability(req.user.id);
+      res.json(successResponse(profile, 'Availability updated successfully'));
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json(errorResponse(error.message));
+      } else {
+        next(error);
+      }
+    }
+  }
+}
+
+export default new TutorController();
