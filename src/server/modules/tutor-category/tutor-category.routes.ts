@@ -1,24 +1,40 @@
-import { Router } from "express";
-import { TutorCategoryController } from "./tutor-category.controller";
+import { Router } from 'express';
+import { body } from 'express-validator';
+import  CategoryController  from './tutor-category.controller';
+import { authenticate, isAdmin } from '../../../lib/middleware/authMiddleware';
+import { validate } from '../../../lib/middleware/validation';
+
 
 const router = Router();
 
-// Add category to tutor
-router.post("/", TutorCategoryController.add);
+// Validation rules
+const createCategoryValidation = [
+  body('name').notEmpty().withMessage('Name is required').trim(),
+  body('slug').notEmpty().withMessage('Slug is required').trim(),
+  body('description').optional().isString().trim(),
+  body('icon').optional().isString().trim(),
+  body('color').optional().matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/).withMessage('Invalid color format'),
+];
 
-// Get all categories for a tutor
-router.get("/tutor/:tutorId", TutorCategoryController.getByTutor);
+const updateCategoryValidation = [
+  body('name').optional().notEmpty().withMessage('Name cannot be empty').trim(),
+  body('slug').optional().notEmpty().withMessage('Slug cannot be empty').trim(),
+  body('description').optional().isString().trim(),
+  body('icon').optional().isString().trim(),
+  body('color').optional().matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/).withMessage('Invalid color format'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be boolean'),
+];
 
-// Set primary category
-router.patch(
-  "/tutor/:tutorId/category/:categoryId/primary",
-  TutorCategoryController.setPrimary
-);
+// Public routes
+router.get('/', CategoryController.getAllCategories);
+router.get('/:categoryId', CategoryController.getCategoryById);
+router.get('/slug/:slug', CategoryController.getCategoryBySlug);
 
-// Remove category from tutor
-router.delete(
-  "/tutor/:tutorId/category/:categoryId",
-  TutorCategoryController.remove
-);
+// Admin routes
+router.post('/', authenticate, isAdmin, validate(createCategoryValidation), CategoryController.createCategory);
+router.put('/:categoryId', authenticate, isAdmin, validate(updateCategoryValidation), CategoryController.updateCategory);
+router.delete('/:categoryId', authenticate, isAdmin, CategoryController.deleteCategory);
+router.patch('/:categoryId/toggle-status', authenticate, isAdmin, CategoryController.toggleStatus);
 
-export const TutorCategoryRoutes = router;
+export const CategoryRoutes = router;
+

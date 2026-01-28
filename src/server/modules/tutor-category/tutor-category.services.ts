@@ -1,75 +1,186 @@
 import { prisma } from "../../../lib/prisma";
-import { AddTutorCategoryInput } from "./tutor-category.type";
+import { CreateCategoryDto, UpdateCategoryDto } from "../../../types";
+import { generateSlug } from "../../../utils/helper";
 
 
-export const TutorCategoryService = {
-addCategoryToTutor: async ({ tutorId, categoryId, isPrimary }: AddTutorCategoryInput) => {
-  const tutorExists = await prisma.tutorProfile.findUnique({
-    where: { id: tutorId },
-  });
+export class CategoryService {
+  /**
+   * Create a new category
+   */
+  async createCategory(data: CreateCategoryDto) {
+    const { name, slug, description, icon, color } = data;
 
-  if (!tutorExists) {
-    throw new Error("Tutor profile not found");
-  }
-
-  if (isPrimary) {
-    await prisma.tutorCategory.updateMany({
-      where: { tutorId },
-      data: { isPrimary: false },
-    });
-  }
-
-  return prisma.tutorCategory.create({
-    data: {
-      tutorId,
-      categoryId,
-      isPrimary: isPrimary ?? false,
-    },
-  });
-},
-
-
-  getTutorCategories: async (tutorId: string) => {
-    return prisma.tutorCategory.findMany({
-      where: { tutorId },
-      include: {
-        category: true,
-      },
-      orderBy: {
-        isPrimary: "desc",
-      },
-    });
-  },
-
-  setPrimaryCategory: async (tutorId: string, categoryId: string) => {
-    // Reset all
-    await prisma.tutorCategory.updateMany({
-      where: { tutorId },
-      data: { isPrimary: false },
-    });
-
-    // Set new primary
-    return prisma.tutorCategory.update({
+    // Check if category with same name or slug exists
+    const existing = await prisma.category.findFirst({
       where: {
-        tutorId_categoryId: {
-          tutorId,
-          categoryId,
-        },
+        OR: [{ name }, { slug }],
       },
+    });
+
+    if (existing) {
+      throw new Error('Category with this name or slug already exists');
+    }
+
+    const category = await prisma.category.create({
       data: {
-        isPrimary: true,
+        name,
+        slug: slug || generateSlug(name),
+        description,
+        icon,
+        color,
       },
     });
-  },
 
-  removeCategoryFromTutor: async (tutorId: string, categoryId: string) => {
-    return prisma.tutorCategory.delete({
-      where: {
-        tutorId_categoryId: {
-          tutorId,
-          categoryId,
+    return category;
+  }
+
+  /**
+   * Get all categories
+   */
+  async getAllCategories(includeInactive: boolean = false) {
+    const where = includeInactive ? {} : { isActive: true };
+
+    const categories = await prisma.category.findMany({
+      where,
+      orderBy: { name: 'asc' },
+      include: {
+        _count: {
+          select: {
+            tutors: true,
+          },
         },
       },
     });
-  },
-};
+
+    return categories;
+  }
+
+  /**
+   * Get category by ID
+   */
+  async getCategoryById(categoryId: string) {
+    const category = await prisma.category.findUnique({
+      where: { id: categoryId },
+      include: {
+        _count: {
+          select: {
+            tutors: true,
+          },
+        },
+      },
+    });
+
+    if (!category) {
+      throw new Error('Category not found');
+    }
+
+    return category;
+  }
+
+  /**
+   * Get category by slug
+   */
+  async getCategoryBySlug(slug: string) {
+    const category = await prisma.category.findUnique({
+      where: { slug },
+      include: {
+        _count: {
+          select: {
+            tutors: true,
+          },
+        },
+      },
+    });
+
+    if (!category) {
+      throw new Error('Category not found');
+    }
+
+    return category;
+  }
+
+  /**
+   * Update category
+   */
+  async updateCategory(categoryId: string, data: UpdateCategoryDto) {
+    const category = await prisma.category.findUnique({
+      where: { id: categoryId },
+    });
+
+    if (!category) {
+      throw new Error('Category not found');
+    }
+
+    // Check if new slug is unique
+    if (data.slug && data.slug !== category.slug) {
+      const existing = await prisma.category.findUnique({
+        where: { slug: data.slug },
+      });
+
+      if (existing) {
+        throw new Error('Category with this slug already exists');
+      }
+    }
+
+    const updated = await prisma.category.update({
+      where: { id: categoryId },
+      data,
+    });
+
+    return updated;
+  }
+
+  /**
+   * Delete category
+   */
+  async deleteCategory(categoryId: string) {
+    const category = await prisma.category.findUnique({
+      where: { id: categoryId },
+      include: {
+        _count: {
+          select: {
+            tutors: true,
+          },
+        },
+      },
+    });
+
+    if (!category) {
+      throw new Error('Category not found');
+    }
+
+    if (category._count.tutors > 0) {
+      throw new Error('Cannot delete category with associated tutors');
+    }
+
+    await prisma.category.delete({
+      where: { id: categoryId },
+    });
+
+    return { message: 'Category deleted successfully' };
+  }
+
+  /**
+   * Toggle category active status
+   */
+  async toggleCategoryStatus(categoryId: string) {
+    const category = await prisma.category.findUnique({
+      where: { id: categoryId },
+    });
+
+    if (!category) {
+      throw new Error('Category not found');
+    }
+
+    const updated = await prisma.category.update({
+      where: { id: categoryId },
+      data: {
+        isActive: !category.isActive,
+      },
+    });
+
+    return updated;
+  }
+}
+
+export default new CategoryService();
