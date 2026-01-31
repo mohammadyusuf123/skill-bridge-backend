@@ -1,4 +1,4 @@
-import { Prisma } from '../../../../generated/prisma/client';
+import { Prisma, UserRole } from '../../../../generated/prisma/client';
 import { prisma } from '../../../lib/prisma';
 import { BookingFilters, CreateBookingDto, UpdateBookingDto } from '../../../types';
 import { calculateDuration } from '../../../utils/helper';
@@ -117,80 +117,49 @@ export class BookingService {
   /**
    * Get user bookings
    */
-  async getUserBookings(
-    userId: string,
-    userRole: string,
-    filters: BookingFilters,
-    page: number = 1,
-    limit: number = 10
-  ) {
-    const skip = (page - 1) * limit;
+async getMyBookings(userId: string, userRole: UserRole) {
+    let where: any = {};
 
-    const where: Prisma.BookingWhereInput = {
-      ...(userRole === 'TUTOR' ? { tutorId: userId } : { studentId: userId }),
-    };
-
-    // Status filter
-    if (filters.status) {
-      where.status = filters.status as any;
+    if (userRole === 'STUDENT') {
+      where.studentId = userId;
+    } else if (userRole === 'TUTOR') {
+      where.tutorId = userId;
     }
+    // ADMIN → no filter
 
-    // Date range filter
-    if (filters.fromDate || filters.toDate) {
-      where.sessionDate = {};
-      if (filters.fromDate) {
-        where.sessionDate.gte = filters.fromDate;
-      }
-      if (filters.toDate) {
-        where.sessionDate.lte = filters.toDate;
-      }
-    }
-
-    const [bookings, total] = await Promise.all([
-      prisma.booking.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { sessionDate: 'desc' },
-        include: {
-          student: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-            },
+    return prisma.booking.findMany({
+      where,
+      include: {
+        student: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
           },
-          tutor: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-            },
-          },
-          tutorProfile: {
-            select: {
-              id: true,
-              title: true,
-            },
-          },
-          review: true,
         },
-      }),
-      prisma.booking.count({ where }),
-    ]);
-
-    return {
-      data: bookings,
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+        tutor: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+        tutorProfile: {
+          include: {
+            user: true,
+          },
+        },
+        review: true,
       },
-    };
+      orderBy: {
+        sessionDate: 'desc',
+      },
+    });
   }
+
+
 
   /**
    * Update booking status

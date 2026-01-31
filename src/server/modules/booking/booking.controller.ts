@@ -52,35 +52,43 @@ export class BookingController {
   /**
    * Get user bookings
    */
-  async getUserBookings(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+ async getMyBookings(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       if (!req.user) {
-        res.status(401).json(errorResponse('Not authenticated'));
-        return;
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized',
+        });
       }
 
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const { id: userId, role: userRole } = req.user;
 
-      const filters = {
-        status: req.query.status as string | undefined,
-        fromDate: req.query.fromDate ? new Date(req.query.fromDate as string) : undefined,
-        toDate: req.query.toDate ? new Date(req.query.toDate as string) : undefined,
-      };
-
-      const result = await BookingService.getUserBookings(
-        req.user.id,
-        req.user.role,
-        filters,
-        page,
-        limit
+      const bookings = await BookingService.getMyBookings(
+        userId,
+        userRole
       );
 
-      res.json(successResponse(result));
+      res.json({
+        success: true,
+        data: {
+          data: bookings,
+          meta: {
+            total: bookings.length,
+            page: 1,
+            limit: bookings.length,
+            totalPages: 1,
+          },
+        },
+      });
     } catch (error) {
       next(error);
     }
   }
+
 
   /**
    * Update booking

@@ -31,8 +31,9 @@ const updateProfileValidation = [
 ];
 
 // Public routes
+router.get('/', TutorController.getAllTutors);
 router.get('/search', TutorController.searchTutors);
-router.get('/user/:userId', TutorController.getProfileByUserId);
+router.get('/user/:userId', TutorController.getTutorProfileByUserId);
 router.get('/:tutorId', TutorController.getProfileById);
 
 // Protected routes (Tutor only)

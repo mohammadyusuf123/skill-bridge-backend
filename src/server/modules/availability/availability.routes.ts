@@ -37,4 +37,4 @@ router.put('/:availabilityId', authenticate, isTutor, validate(updateAvailabilit
 router.delete('/:availabilityId', authenticate, isTutor, AvailabilityController.deleteAvailability);
 router.patch('/:availabilityId/toggle', authenticate, isTutor, AvailabilityController.toggleAvailability);
 
-export default router;
+export const AvailabilityRoutes = router;

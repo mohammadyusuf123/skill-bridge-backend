@@ -9,6 +9,7 @@ import { BookingRoutes } from "./modules/booking/booking.routes";
 import { CategoryRoutes } from "./modules/tutor-category/tutor-category.routes";
 import { UserRoutes } from "./modules/user/user.routes";
 import { DashboardRoutes } from "./modules/dashboard/dashboard.routes";
+import { AvailabilityRoutes } from "./modules/availability/availability.routes";
 const app = express();
 
 app.use(cors({
@@ -31,6 +32,8 @@ app.use("/api/bookings", BookingRoutes);
 app.use("/api/tutors", TutorRoutes);
 // Dashboard routes
 app.use("/api/dashboard", DashboardRoutes);
+// Availability routes
+app.use("/api/availability", AvailabilityRoutes);
 // Not found handler
 app.use(notFound);
 

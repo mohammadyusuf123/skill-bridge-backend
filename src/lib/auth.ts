@@ -17,11 +17,11 @@ export const auth = betterAuth({
       phone: { type: "string", required: false },
        role: {
         type: "string",
-        required: true
+        required: false
       },
        status: {
         type: "string",
-        required: true
+        required: false
       }
     },
   },

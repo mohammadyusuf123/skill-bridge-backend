@@ -34,7 +34,7 @@ A comprehensive REST API built with **Express.js**, **TypeScript**, and **Prisma
 1. **Clone the repository**
 
    ```bash
-   cd tutoring-api
+   cd skill-bridge-backend
    ```
 
 2. **Install dependencies**
@@ -52,7 +52,7 @@ A comprehensive REST API built with **Express.js**, **TypeScript**, and **Prisma
    Edit `.env` with your configuration:
 
    ```env
-   PORT=3000
+   PORT=5000
    NODE_ENV=development
    DATABASE_URL="postgresql://username:password@localhost:5432/tutoring_db"
    CORS_ORIGIN=http://localhost:5173

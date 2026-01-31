@@ -1,5 +1,5 @@
 import { prisma } from "../../../lib/prisma";
-import { UpdateUserDto } from "../../../types";
+import { GetUsersFilters, UpdateUserDto } from "../../../types";
 
 
 export class UserService {
@@ -66,42 +66,25 @@ export class UserService {
   /**
    * Get all users (Admin only)
    */
-  async getAllUsers(page: number = 1, limit: number = 10, filters?: { role?: string; status?: string }) {
-    const skip = (page - 1) * limit;
-
+async getAllUsers(filters: GetUsersFilters) {
     const where: any = {};
-    if (filters?.role) where.role = filters.role;
-    if (filters?.status) where.status = filters.status;
 
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        skip,
-        take: limit,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          role: true,
-          status: true,
-          image: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.user.count({ where }),
-    ]);
+    if (filters.role && filters.role !== 'ALL') {
+      where.role = filters.role;
+    }
 
-    return {
-      data: users,
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+    if (filters.status && filters.status !== 'ALL') {
+      where.status = filters.status;
+    }
+
+    return prisma.user.findMany({
+      where,
+      orderBy: {
+        createdAt: 'desc',
       },
-    };
+    });
   }
+
 
   /**
    * Delete user (Admin only)

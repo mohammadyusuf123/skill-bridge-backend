@@ -1,75 +1,61 @@
 import { prisma } from "../../../lib/prisma";
-import { CreateReviewDto } from "../../../types";
+import { CreateReviewInput } from "../../../types";
 
 
 export class ReviewService {
   /**
    * Create a review
    */
-  async createReview(studentId: string, data: CreateReviewDto) {
-    const { bookingId, rating, comment } = data;
+async createReview(input: CreateReviewInput) {
+    const { bookingId, studentId, rating, comment } = input;
 
-    // Verify booking exists and belongs to student
-    const booking = await prisma.booking.findUnique({
-      where: { id: bookingId },
+    // 1️⃣ Verify booking exists, belongs to student, and is completed
+    const booking = await prisma.booking.findFirst({
+      where: {
+        id: bookingId,
+        studentId,
+        status: 'COMPLETED',
+      },
       include: {
-        review: true,
+        tutor: true, // get tutorId
       },
     });
 
     if (!booking) {
-      throw new Error('Booking not found');
+      throw {
+        status: 404,
+        message: 'Booking not found or not completed',
+      };
     }
 
-    if (booking.studentId !== studentId) {
-      throw new Error('Not authorized to review this booking');
+    // 2️⃣ Check if review already exists
+    const existingReview = await prisma.review.findUnique({
+      where: { bookingId },
+    });
+
+    if (existingReview) {
+      throw {
+        status: 400,
+        message: 'Review already exists for this booking',
+      };
     }
 
-    if (booking.status !== 'COMPLETED') {
-      throw new Error('Can only review completed bookings');
-    }
-
-    if (booking.review) {
-      throw new Error('Booking already has a review');
-    }
-
-    // Validate rating
-    if (rating < 1 || rating > 5) {
-      throw new Error('Rating must be between 1 and 5');
-    }
-
-    // Create review
-    const review = await prisma.review.create({
+    // 3️⃣ Create review
+    return prisma.review.create({
       data: {
         bookingId,
         studentId,
-        tutorId: booking.tutorProfileId,
+        tutorId: booking.tutorId, // ✅ corrected field
         rating,
         comment,
       },
       include: {
-        student: {
-          select: {
-            id: true,
-            name: true,
-            image: true,
-          },
-        },
-        booking: {
-          select: {
-            id: true,
-            subject: true,
-            sessionDate: true,
-          },
-        },
+        student: true,
+        tutor: true,
       },
     });
-
-    // Update tutor's average rating and review count
-    await this.updateTutorRating(booking.tutorProfileId);
-
-    return review;
   }
+
 
   /**
    * Update tutor's average rating
@@ -147,18 +133,16 @@ export class ReviewService {
   /**
    * Get tutor reviews
    */
-  async getTutorReviews(tutorId: string, page: number = 1, limit: number = 10) {
+ async getTutorReviews(
+    tutorId: string,
+    page: number,
+    limit: number
+  ) {
     const skip = (page - 1) * limit;
 
     const [reviews, total] = await Promise.all([
       prisma.review.findMany({
-        where: {
-          tutorId,
-          isVisible: true,
-        },
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
+        where: { tutorId }, // ✅ corrected field
         include: {
           student: {
             select: {
@@ -167,33 +151,29 @@ export class ReviewService {
               image: true,
             },
           },
-          booking: {
-            select: {
-              id: true,
-              subject: true,
-              sessionDate: true,
-            },
-          },
         },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
       }),
       prisma.review.count({
-        where: {
-          tutorId,
-          isVisible: true,
-        },
+        where: { tutorId }, // ✅ corrected field
       }),
     ]);
 
     return {
       data: reviews,
       meta: {
+        total,
         page,
         limit,
-        total,
         totalPages: Math.ceil(total / limit),
       },
     };
   }
+
 
   /**
    * Add tutor response to review

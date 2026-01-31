@@ -1,5 +1,5 @@
 import { Response, NextFunction } from 'express';
-import { AuthRequest } from '../../../types';
+import { AuthRequest, GetUsersFilters } from '../../../types';
 import { errorResponse, successResponse } from '../../../utils/helper';
 import  UserService  from './user.services';
 
@@ -67,19 +67,32 @@ export class UserController {
   /**
    * Get all users (Admin only)
    */
-  async getAllUsers(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+ async getAllUsers(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const role = req.query.role as string | undefined;
-      const status = req.query.status as string | undefined;
+      const { role, status } = req.query;
 
-      const result = await UserService.getAllUsers(page, limit, { role, status });
-      res.json(successResponse(result));
+      const filters = {
+        role: role as string | undefined,
+        status: status as string | undefined,
+      };
+
+      const users = await UserService.getAllUsers(filters);
+
+      // IMPORTANT: return array directly
+      res.json({
+        success: true,
+        data: users,
+      });
     } catch (error) {
       next(error);
     }
   }
+
+
 
   /**
    * Delete user (Admin only)

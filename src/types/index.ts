@@ -56,7 +56,15 @@ export interface TutorFilters {
   isAvailable?: boolean;
   search?: string;
 }
-
+// Specific filter for searching tutors
+export interface TutorSearchFilters {
+  categoryId?: string;
+  search?: string;
+  minRate?: number;
+  maxRate?: number;
+  minRating?: number;
+}
+// Booking filters
 export interface BookingFilters {
   status?: string;
   tutorId?: string;
@@ -144,4 +152,16 @@ export interface UpdateCategoryDto {
   color?: string;
   isActive?: boolean;
 }
+// Filters for getting users
+export interface GetUsersFilters {
+  role?: string;
+  status?: string;
+}
 
+// Review creation input
+export interface CreateReviewInput {
+  bookingId: string;
+  studentId: string;
+  rating: number;
+  comment?: string;
+}

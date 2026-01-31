@@ -24,7 +24,19 @@ export class TutorController {
       }
     }
   }
-
+ //get all tutors
+ async getAllTutors(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tutors = await TutorService.getAllTutors();
+      res.json(successResponse(tutors));
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(404).json(errorResponse(error.message));
+      } else {
+        next(error);
+      }
+    }
+  }
   /**
    * Get own tutor profile
    */
@@ -35,7 +47,7 @@ export class TutorController {
         return;
       }
 
-      const profile = await TutorService.getProfileByUserId(req.user.id);
+      const profile = await TutorService.getTutorProfileByUserId(req.user.id);
       res.json(successResponse(profile));
     } catch (error) {
       if (error instanceof Error) {
@@ -49,17 +61,30 @@ export class TutorController {
   /**
    * Get tutor profile by user ID
    */
-  async getProfileByUserId(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  async getTutorProfileByUserId(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const { userId } = req.params;
-      const profile = await TutorService.getProfileByUserId(userId as string);
-      res.json(successResponse(profile));
-    } catch (error) {
-      if (error instanceof Error) {
-        res.status(404).json(errorResponse(error.message));
-      } else {
-        next(error);
+
+      const tutorProfile =
+        await TutorService.getTutorProfileByUserId(userId as string);
+
+      if (!tutorProfile) {
+        return res.status(404).json({
+          success: false,
+          message: 'Tutor profile not found',
+        });
       }
+
+      res.json({
+        success: true,
+        data: tutorProfile,
+      });
+    } catch (error) {
+      next(error);
     }
   }
 
@@ -104,27 +129,53 @@ export class TutorController {
   /**
    * Search tutors
    */
-  async searchTutors(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+// async searchTutors(req: AuthRequest, res: Response, next: NextFunction) {
+//     try {
+//       const {
+//         categoryId,
+//         search,
+//         minRate,
+//         maxRate,
+//         minRating,
+//         page = 1,
+//         limit = 12,
+//       } = req.query;
+
+//       const filters = {
+//         categoryId: categoryId as string | undefined,
+//         search: search as string | undefined,
+//         minRate: minRate ? Number(minRate) : undefined,
+//         maxRate: maxRate ? Number(maxRate) : undefined,
+//         minRating: minRating ? Number(minRating) : undefined,
+//       };
+
+//       const result = await TutorService.searchTutors(
+//         filters,
+//         Number(page),
+//         Number(limit)
+//       );
+
+//       res.json({
+//         success: true,
+//         data: result,
+//       });
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+async searchTutors(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const sortBy = (req.query.sortBy as string) || 'averageRating';
+      const result = await TutorService.searchTutors(req.query);
 
-      const filters = {
-        categoryId: req.query.categoryId as string | undefined,
-        minRate: req.query.minRate ? parseFloat(req.query.minRate as string) : undefined,
-        maxRate: req.query.maxRate ? parseFloat(req.query.maxRate as string) : undefined,
-        minRating: req.query.minRating ? parseFloat(req.query.minRating as string) : undefined,
-        isAvailable: req.query.isAvailable === 'true',
-        search: req.query.search as string | undefined,
-      };
-
-      const result = await TutorService.searchTutors(filters, page, limit, sortBy);
-      res.json(successResponse(result));
+      res.json({
+        success: true,
+        data: result,
+      });
     } catch (error) {
       next(error);
     }
   }
+
 
   /**
    * Toggle tutor availability

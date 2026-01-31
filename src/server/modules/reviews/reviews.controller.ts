@@ -7,23 +7,38 @@ export class ReviewController {
   /**
    * Create a review
    */
-  async createReview(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+async createReview(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       if (!req.user) {
-        res.status(401).json(errorResponse('Not authenticated'));
-        return;
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized',
+        });
       }
 
-      const review = await ReviewService.createReview(req.user.id, req.body);
-      res.status(201).json(successResponse(review, 'Review created successfully'));
+      const { bookingId, rating, comment } = req.body;
+      const studentId = req.user.id;
+
+      const review = await ReviewService.createReview({
+        bookingId,
+        rating,
+        comment,
+        studentId,
+      });
+
+      res.status(201).json({
+        success: true,
+        data: review,
+      });
     } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json(errorResponse(error.message));
-      } else {
-        next(error);
-      }
+      next(error);
     }
   }
+
 
   /**
    * Get review by ID
@@ -45,18 +60,30 @@ export class ReviewController {
   /**
    * Get tutor reviews
    */
-  async getTutorReviews(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  async getTutorReviews(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const { tutorId } = req.params;
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const { page = '1', limit = '10' } = req.query;
 
-      const result = await ReviewService.getTutorReviews(tutorId as string, page, limit);
-      res.json(successResponse(result));
+      const result = await ReviewService.getTutorReviews(
+        tutorId as string,
+        Number(page),
+        Number(limit)
+      );
+
+      res.json({
+        success: true,
+        data: result,
+      });
     } catch (error) {
       next(error);
     }
   }
+
 
   /**
    * Respond to a review (Tutor only)
