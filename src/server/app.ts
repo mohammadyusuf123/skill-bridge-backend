@@ -2,7 +2,6 @@ import express from "express";
 import cors from "cors";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "../lib/auth";
-import { prisma } from "../lib/prisma";
 
 // Middleware
 import { notFound } from "../lib/middleware/notFound";
@@ -28,15 +27,7 @@ app.use(cors({
 
 app.use(express.json());
 
-// Connect Prisma on first request (avoid multiple connections in serverless)
-app.use(async (req, res, next) => {
-  try {
-    await prisma.$connect();
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
+
 
 // Routes
 app.all('/api/auth/*splat', toNodeHandler(auth));
