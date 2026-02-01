@@ -1,0 +1,14 @@
+{
+  "builds": [
+    {
+      "src": "src/server/server.ts",
+      "use": "@vercel/nft"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/.*",
+      "dest": "/src/server/server.ts"
+    }
+  ]
+}
