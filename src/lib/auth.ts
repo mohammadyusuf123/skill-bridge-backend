@@ -17,7 +17,7 @@ export const auth = betterAuth({
       phone: { type: "string", required: false },
        role: {
         type: "string",
-        required: false
+        required: true
       },
        status: {
         type: "string",
