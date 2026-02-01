@@ -45,14 +45,12 @@ export const authenticate = async (
     const session = await auth.api.getSession({
       headers: req.headers as any,
     });
-
     if (!session) {
       res.status(401).json(errorResponse('No active session'));
       return;
     }
 
     const user = session.user as unknown as SessionUserWithRole;
-   console.log("Authenticated user:", user);
     if (!user) {
       res.status(401).json(errorResponse('User not found'));
       return;

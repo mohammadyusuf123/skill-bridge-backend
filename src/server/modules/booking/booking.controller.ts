@@ -140,6 +140,7 @@ export class BookingController {
    * Mark booking as complete (Tutor only)
    */
   async markAsComplete(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+
     try {
       if (!req.user) {
         res.status(401).json(errorResponse('Not authenticated'));

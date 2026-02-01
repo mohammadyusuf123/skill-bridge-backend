@@ -276,8 +276,13 @@ async getMyBookings(userId: string, userRole: UserRole) {
   /**
    * Mark booking as complete (Tutor only)
    */
-  async markAsComplete(bookingId: string, tutorId: string, tutorNotes?: string) {
-    const booking = await prisma.booking.findUnique({
+async markAsComplete(
+  bookingId: string,
+  tutorId: string,
+  tutorNotes?: string
+) {
+  return prisma.$transaction(async (tx) => {
+    const booking = await tx.booking.findUnique({
       where: { id: bookingId },
     });
 
@@ -293,38 +298,34 @@ async getMyBookings(userId: string, userRole: UserRole) {
       throw new Error('Can only complete confirmed bookings');
     }
 
-    // Check if session date has passed
-    const sessionDateTime = new Date(booking.sessionDate);
-    if (sessionDateTime > new Date()) {
-      throw new Error('Cannot mark future bookings as complete');
+    // Combine session date + end time
+    const [endHour, endMinute] = booking.endTime.split(':').map(Number);
+    const sessionEndDateTime = new Date(booking.sessionDate);
+    sessionEndDateTime.setHours(endHour, endMinute, 0, 0);
+
+    if (sessionEndDateTime > new Date()) {
+      throw new Error('Cannot mark booking as complete before session ends');
     }
 
-    const updated = await prisma.booking.update({
+    // 1️⃣ Update booking
+    const updated = await tx.booking.update({
       where: { id: bookingId },
       data: {
         status: 'COMPLETED',
-        tutorNotes,
+        tutorNotes: tutorNotes ?? 'Marked as completed by tutor.',
       },
       include: {
         student: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+          select: { id: true, name: true, email: true },
         },
         tutor: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+          select: { id: true, name: true, email: true },
         },
       },
     });
 
-    // Update tutor stats
-    await prisma.tutorProfile.update({
+    // 2️⃣ Update tutor stats (exactly once)
+    await tx.tutorProfile.update({
       where: { id: booking.tutorProfileId },
       data: {
         totalSessions: { increment: 1 },
@@ -332,7 +333,9 @@ async getMyBookings(userId: string, userRole: UserRole) {
     });
 
     return updated;
-  }
+  });
+}
+
 
   /**
    * Get booking statistics

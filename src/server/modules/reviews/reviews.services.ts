@@ -6,55 +6,63 @@ export class ReviewService {
   /**
    * Create a review
    */
-async createReview(input: CreateReviewInput) {
-    const { bookingId, studentId, rating, comment } = input;
 
-    // 1️⃣ Verify booking exists, belongs to student, and is completed
-    const booking = await prisma.booking.findFirst({
+
+async createReview(input: CreateReviewInput) {
+  const { bookingId, studentId, rating, comment } = input;
+
+  return prisma.$transaction(async (tx) => {
+    const booking = await tx.booking.findFirst({
       where: {
         id: bookingId,
         studentId,
         status: 'COMPLETED',
       },
-      include: {
-        tutor: true, // get tutorId
-      },
     });
 
     if (!booking) {
-      throw {
-        status: 404,
-        message: 'Booking not found or not completed',
-      };
+      throw new Error('Booking not found or not completed');
     }
 
-    // 2️⃣ Check if review already exists
-    const existingReview = await prisma.review.findUnique({
+    const existing = await tx.review.findUnique({
       where: { bookingId },
     });
 
-    if (existingReview) {
-      throw {
-        status: 400,
-        message: 'Review already exists for this booking',
-      };
+    if (existing) {
+      throw new Error('Review already exists');
     }
 
-    // 3️⃣ Create review
-    return prisma.review.create({
+    // 1️⃣ Create review
+    await tx.review.create({
       data: {
         bookingId,
         studentId,
-        tutorId: booking.tutorId, // ✅ corrected field
+        tutorId: booking.tutorProfileId,
         rating,
         comment,
       },
-      include: {
-        student: true,
-        tutor: true,
+    });
+
+    // 2️⃣ Recalculate tutor stats
+    const stats = await tx.review.aggregate({
+      where: { tutorId: booking.tutorProfileId },
+      _count: { id: true },
+      _avg: { rating: true },
+    });
+
+    // 3️⃣ Update tutor profile
+    await tx.tutorProfile.update({
+      where: { id: booking.tutorProfileId },
+      data: {
+        totalReviews: stats._count.id,
+        averageRating: stats._avg.rating ?? 0,
       },
     });
-  }
+
+    return { success: true };
+  });
+}
+
 
 
   /**

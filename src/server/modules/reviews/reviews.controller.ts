@@ -22,14 +22,12 @@ async createReview(
 
       const { bookingId, rating, comment } = req.body;
       const studentId = req.user.id;
-
       const review = await ReviewService.createReview({
         bookingId,
         rating,
         comment,
         studentId,
       });
-
       res.status(201).json({
         success: true,
         data: review,

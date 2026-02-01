@@ -1,47 +1,62 @@
 import express from "express";
+import cors from "cors";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "../lib/auth";
-import cors from "cors"
+import { prisma } from "../lib/prisma";
+
+// Middleware
 import { notFound } from "../lib/middleware/notFound";
 import errorHandler from "../lib/middleware/globalErrorHandler";
+
+// Routes
 import { TutorRoutes } from "./modules/tutors/tutors.routes";
 import { BookingRoutes } from "./modules/booking/booking.routes";
 import { CategoryRoutes } from "./modules/tutor-category/tutor-category.routes";
 import { UserRoutes } from "./modules/user/user.routes";
 import { DashboardRoutes } from "./modules/dashboard/dashboard.routes";
 import { AvailabilityRoutes } from "./modules/availability/availability.routes";
+import { ReviewRoutes } from "./modules/reviews/reviews.routes";
+
 const app = express();
 
+// Middleware
 app.use(cors({
-    origin: process.env.APP_URL || "http://localhost:3000",
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    credentials: true,
+  origin: process.env.APP_URL,
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  credentials: true,
 }));
 
 app.use(express.json());
 
-// Auth routes 
+// Connect Prisma on first request (avoid multiple connections in serverless)
+app.use(async (req, res, next) => {
+  try {
+    await prisma.$connect();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Routes
 app.all('/api/auth/*splat', toNodeHandler(auth));
-// User routes
 app.use("/api/users", UserRoutes);
-// Booking routes
 app.use("/api/bookings", BookingRoutes);
-// Tutor category routes
- app.use("/api/tutor-categories", CategoryRoutes);
-// Tutors routes
+app.use("/api/tutor-categories", CategoryRoutes);
 app.use("/api/tutors", TutorRoutes);
-// Dashboard routes
 app.use("/api/dashboard", DashboardRoutes);
-// Availability routes
 app.use("/api/availability", AvailabilityRoutes);
+app.use("/api/reviews", ReviewRoutes);
+
+// Root route
+app.get("/", (req, res) => {
+  res.send("Welcome to Skill Bridge");
+});
+
 // Not found handler
 app.use(notFound);
 
-// Error handler
+// Global error handler
 app.use(errorHandler);
 
-app.get("/", (req, res) => {
-    res.send("Welcome to Skill Bridge")
-})
-
-export default app
+export default app;

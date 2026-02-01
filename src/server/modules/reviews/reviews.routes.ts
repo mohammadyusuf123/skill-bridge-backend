@@ -30,4 +30,4 @@ router.post('/:reviewId/respond', authenticate, isTutor, validate(respondToRevie
 // Admin routes
 router.delete('/:reviewId', authenticate, isAdmin, ReviewController.deleteReview);
 
-export default router;
+export const ReviewRoutes = router;
