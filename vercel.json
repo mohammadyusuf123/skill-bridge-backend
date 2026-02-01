@@ -1,8 +1,9 @@
+
 {
   "builds": [
     {
       "src": "src/server/server.ts",
-      "use": "@vercel/nft"
+      "use": "@vercel/node"
     }
   ],
   "routes": [
