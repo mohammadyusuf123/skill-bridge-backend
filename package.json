@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npx tsx watch src/server/server.ts",
+    "dev": "npx tsx watch src/server/index.ts",
     "seed": "tsx src/scripts/seed.ts",
-     "build": "prisma generate && tsup src/index.ts --format esm --platform node --target node20 --outDir api --external pg-native",
+    "build": "prisma generate && tsup src/server/index.ts --format esm --platform node --target node20 --outDir api --external pg-native",
     "postinstall": "prisma generate"
   },
   "keywords": [],
@@ -35,6 +35,7 @@
     "express": "^5.2.1",
     "express-validator": "^7.3.1",
     "pg": "^8.17.2",
-    "serverless-http": "^4.0.0"
+    "serverless-http": "^4.0.0",
+    "tsup": "^8.5.1"
   }
 }
