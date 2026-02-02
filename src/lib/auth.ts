@@ -17,6 +17,14 @@ export const auth = betterAuth({
     },
   },
 
+    cookies: {
+      session: {
+        sameSite: "none",   // 🔥 REQUIRED for cross-site
+        secure: true,       // 🔥 REQUIRED for SameSite=None
+        path: "/",          // 🔥 REQUIRED
+      },
+    },
+
   emailAndPassword: {
     enabled: true,
     autoSignIn: true,
