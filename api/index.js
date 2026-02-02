@@ -3739,7 +3739,6 @@ var ReviewRoutes = router7;
 
 // src/server/app.ts
 var app = express();
-app.options("*", cors());
 app.use(cors({
   origin: [
     process.env.APP_URL || "http://localhost:3000",
