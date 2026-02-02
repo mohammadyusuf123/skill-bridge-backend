@@ -17,7 +17,7 @@ import { AvailabilityRoutes } from "./modules/availability/availability.routes";
 import { ReviewRoutes } from "./modules/reviews/reviews.routes";
 
 const app = express();
-
+app.options("*", cors());
 // Middleware
 app.use(cors({
   origin: [
