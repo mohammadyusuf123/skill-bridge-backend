@@ -17,19 +17,16 @@ import { AvailabilityRoutes } from "./modules/availability/availability.routes";
 import { ReviewRoutes } from "./modules/reviews/reviews.routes";
 
 const app = express();
-app.use(
-  cors({
-    origin: [
-      process.env.APP_URL!,
-      "http://localhost:3000",
-    ],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
-
-
+// Middleware
+app.use(cors({
+  origin: [
+    process.env.APP_URL || "http://localhost:3000",
+    "http://localhost:3000", // Local development
+    "http://localhost:3001", // Alternative local port
+  ],
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  credentials: true,
+}));
 
 app.use(express.json());
 
