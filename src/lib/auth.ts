@@ -17,11 +17,11 @@ export const auth = betterAuth({
     cookies: {
       sessionToken: {
         name: "better-auth.session",
-        options: {
+        attributes: {
           httpOnly: true,
           secure: true,          // ✅ REQUIRED on Vercel
-          sameSite: "none",      // ✅ REQUIRED for cross-origin
-          path: "/",
+           sameSite: "lax", // ✅ Same-origin, so "lax" works
+        path: "/",
         },
       },
     },
