@@ -2,28 +2,38 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./prisma";
 
-
 export const auth = betterAuth({
-  baseURL: "https://skill-bridge-backend-sooty.vercel.app/api/auth",
+  baseURL: process.env.BETTER_AUTH_URL, // backend URL
+
+  database: prismaAdapter(prisma, {
+    provider: "postgresql",
+  }),
 
   trustedOrigins: [
-    "https://skill-bridge-fronted.vercel.app",
+    process.env.APP_URL!, // frontend URL
   ],
 
   advanced: {
-    useSecureCookies: true,
-    crossSubDomainCookies: {
-      enabled: false, // VERY IMPORTANT
+    cookies: {
+      sessionToken: {
+        name: "better-auth.session",
+        options: {
+          httpOnly: true,
+          secure: true,          // ✅ REQUIRED on Vercel
+          sameSite: "none",      // ✅ REQUIRED for cross-origin
+          path: "/",
+        },
+      },
     },
   },
 
-    cookies: {
-      session: {
-        sameSite: "none",   // 🔥 REQUIRED for cross-site
-        secure: true,       // 🔥 REQUIRED for SameSite=None
-        path: "/",          // 🔥 REQUIRED
-      },
+  user: {
+    additionalFields: {
+      phone: { type: "string", required: false },
+      role: { type: "string", required: true },
+      status: { type: "string", required: false },
     },
+  },
 
   emailAndPassword: {
     enabled: true,
