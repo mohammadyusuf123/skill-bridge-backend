@@ -13,18 +13,32 @@ export const auth = betterAuth({
     process.env.APP_URL!, // frontend URL
   ],
 
-  advanced: {
-    cookies: {
-      sessionToken: {
-        name: "better-auth.session",
-        attributes: {
-          httpOnly: true,
-          secure: true,          // ✅ REQUIRED on Vercel
-           sameSite: "lax", // ✅ Same-origin, so "lax" works
-        path: "/",
-        },
-      },
+  // advanced: {
+  //   cookies: {
+  //     sessionToken: {
+  //       name: "better-auth.session",
+  //       attributes: {
+  //         httpOnly: true,
+  //         secure: true,          // ✅ REQUIRED on Vercel
+  //          sameSite: "lax", // ✅ Same-origin, so "lax" works
+  //       path: "/",
+  //       },
+  //     },
+  //   },
+  // },
+ session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60, // 5 minutes
     },
+  },
+  advanced: {
+    cookiePrefix: "better-auth",
+    useSecureCookies: process.env.NODE_ENV === "production",
+    crossSubDomainCookies: {
+      enabled: false,
+    },
+    disableCSRFCheck: true, // Allow requests without Origin header (Postman, mobile apps, etc.)
   },
 
   user: {
