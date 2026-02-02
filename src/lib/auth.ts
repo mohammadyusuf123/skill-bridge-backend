@@ -11,7 +11,12 @@ export const auth = betterAuth({
   }),
 
   trustedOrigins: [process.env.APP_URL!],
-
+advanced: {
+    useSecureCookies: true,
+    crossSubDomainCookies: {
+      enabled: true,
+    },
+  },
   user: {
     additionalFields: {
       phone: { type: "string", required: false },
