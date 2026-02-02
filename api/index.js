@@ -600,29 +600,40 @@ var prisma = new PrismaClient({ adapter });
 // src/lib/auth.ts
 var auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
+  // backend URL
   database: prismaAdapter(prisma, {
     provider: "postgresql"
   }),
-  trustedOrigins: [process.env.APP_URL],
+  trustedOrigins: [
+    process.env.APP_URL
+    // frontend URL
+  ],
+  advanced: {
+    cookies: {
+      sessionToken: {
+        name: "better-auth.session",
+        attributes: {
+          httpOnly: true,
+          secure: true,
+          // ✅ REQUIRED on Vercel
+          sameSite: "lax",
+          // ✅ Same-origin, so "lax" works
+          path: "/"
+        }
+      }
+    }
+  },
   user: {
     additionalFields: {
       phone: { type: "string", required: false },
-      role: {
-        type: "string",
-        required: false
-      },
-      status: {
-        type: "string",
-        required: false
-      }
+      role: { type: "string", required: true },
+      status: { type: "string", required: false }
     }
   },
   emailAndPassword: {
     enabled: true,
     autoSignIn: true,
-    // ✅
     requireEmailVerification: false
-    // (for dev only)
   }
 });
 
@@ -3728,8 +3739,15 @@ var ReviewRoutes = router7;
 
 // src/server/app.ts
 var app = express();
+app.options("*", cors());
 app.use(cors({
-  origin: process.env.APP_URL,
+  origin: [
+    process.env.APP_URL || "http://localhost:3000",
+    "http://localhost:3000",
+    // Local development
+    "http://localhost:3001"
+    // Alternative local port
+  ],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true
 }));
