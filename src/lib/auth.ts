@@ -34,16 +34,15 @@ export const auth = betterAuth({
   },
   advanced: {
     cookies: {
-      sessionToken: {
-        name: "better-auth.session",
-        attributes: {
-          httpOnly: true,
-          secure: true, // true in production (HTTPS)
-          sameSite: "none", // Required for cross-origin requests
-          domain: ".vercel.app", // If both frontend and backend are on vercel.app subdomains
-          path: "/",
-        },
-      },
+       cookie: {
+    name: "better-auth.session_token",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "none",
+    domain: process.env.NODE_ENV === "production" ? ".vercel.app" : "localhost",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+  },
     }
     
     
