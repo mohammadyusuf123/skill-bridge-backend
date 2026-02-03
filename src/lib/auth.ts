@@ -18,14 +18,14 @@ export const auth = betterAuth({
       maxAge: 5 * 60, // 5 minutes
     },
   },
-  advanced: {
-    cookiePrefix: "better-auth",
-    useSecureCookies: process.env.NODE_ENV === "production",
-    crossSubDomainCookies: {
-      enabled: false,
+ advanced: {
+        crossSubDomainCookies: {
+            enabled: true,
+            domain: "https://skill-bridge-fronted-production.up.railway.app", // your domain
+        },
     },
-    disableCSRFCheck: true, // Allow requests without Origin header (Postman, mobile apps, etc.)
-  },
+
+  
 
   // advanced: {
   //   cookies: {
