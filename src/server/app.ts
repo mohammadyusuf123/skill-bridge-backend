@@ -48,7 +48,18 @@ app.use(
     exposedHeaders: ["Set-Cookie"],
   }),
 );
-
+app.use(session({
+  secret: 'your-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: true,              // HTTPS only
+    httpOnly: true,            // Prevent XSS
+    sameSite: 'none',          // Allow cross-site cookies
+    domain: '.vercel.app',     // Or remove domain entirely
+    maxAge: 24 * 60 * 60 * 1000
+  }
+}));
 
 app.use(express.json());
 
@@ -78,3 +89,15 @@ app.use(notFound);
 app.use(errorHandler);
 
 export default app;
+function session(arg0: {
+  secret: string; resave: boolean; saveUninitialized: boolean; cookie: {
+    secure: boolean; // HTTPS only
+    httpOnly: boolean; // Prevent XSS
+    sameSite: string; // Allow cross-site cookies
+    domain: string; // Or remove domain entirely
+    maxAge: number;
+  };
+}): any {
+  throw new Error("Function not implemented.");
+}
+
