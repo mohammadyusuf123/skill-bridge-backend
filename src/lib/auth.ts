@@ -24,7 +24,7 @@ export const auth = betterAuth({
   advanced: {
     cookies: {
       sessionToken: {
-        name: "better-auth.session_token",
+        name: "auth-token",
         options: {
           httpOnly: true,
           secure: true,           // Required for production
