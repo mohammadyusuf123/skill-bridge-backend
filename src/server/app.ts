@@ -15,6 +15,7 @@ import { UserRoutes } from "./modules/user/user.routes";
 import { DashboardRoutes } from "./modules/dashboard/dashboard.routes";
 import { AvailabilityRoutes } from "./modules/availability/availability.routes";
 import { ReviewRoutes } from "./modules/reviews/reviews.routes";
+import { SeasonRoutes } from "./modules/user/season.route";
 
 const app = express();
 // Middleware
@@ -30,7 +31,8 @@ app.use(cors({
 
 app.use(express.json());
 
-
+// Auth routes (now CORS is already applied)
+app.all('/api/auth/*splat', toNodeHandler(auth));
 
 // Routes
 app.all('/api/auth/*splat', toNodeHandler(auth));
@@ -41,6 +43,7 @@ app.use("/api/tutors", TutorRoutes);
 app.use("/api/dashboard", DashboardRoutes);
 app.use("/api/availability", AvailabilityRoutes);
 app.use("/api/reviews", ReviewRoutes);
+app.use("/api/season", SeasonRoutes);
 
 // Root route
 app.get("/", (req, res) => {
