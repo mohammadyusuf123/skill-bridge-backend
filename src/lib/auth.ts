@@ -12,6 +12,20 @@ export const auth = betterAuth({
   trustedOrigins: [
     process.env.APP_URL!, // frontend URL
   ],
+ session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60, // 5 minutes
+    },
+  },
+  advanced: {
+    cookiePrefix: "better-auth",
+    useSecureCookies: process.env.NODE_ENV === "production",
+    crossSubDomainCookies: {
+      enabled: false,
+    },
+    disableCSRFCheck: true, // Allow requests without Origin header (Postman, mobile apps, etc.)
+  },
 
   // advanced: {
   //   cookies: {
@@ -26,28 +40,28 @@ export const auth = betterAuth({
   //     },
   //   },
   // },
- session: {
-    cookieCache: {
-      enabled: true,
-      maxAge: 5 * 60, // 5 minutes
-    },
-  },
-  advanced: {
-    cookies: {
-       cookie: {
-    name: "better-auth.session_token",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "none",
-    domain: process.env.NODE_ENV === "production" ? ".vercel.app" : "localhost",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-  },
-    }
+//  session: {
+//     cookieCache: {
+//       enabled: true,
+//       maxAge: 5 * 60, // 5 minutes
+//     },
+//   },
+  // advanced: {
+  //   cookies: {
+  //      cookie: {
+  //   name: "better-auth.session_token",
+  //   httpOnly: true,
+  //   secure: process.env.NODE_ENV === "production",
+  //   sameSite: "none",
+  //   domain: process.env.NODE_ENV === "production" ? ".vercel.app" : "localhost",
+  //   path: "/",
+  //   maxAge: 60 * 60 * 24 * 7, // 7 days
+  // },
+  //   }
     
     
   
-  },
+  // },
 
   user: {
     additionalFields: {
