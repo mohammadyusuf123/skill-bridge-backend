@@ -28,6 +28,9 @@ export const auth = betterAuth({
   advanced: {
     // Use custom cookie settings instead
     useSecureCookies: true, // Force secure cookies
+     generateSessionToken: () => {
+      return crypto.randomUUID(); // Ensure session tokens are generated
+    },
     cookieOptions: {
       sameSite: "none", // ✅ Required for cross-domain
       secure: true,      // ✅ Required for sameSite: none
