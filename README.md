@@ -1,574 +1,349 @@
-# SkillBridge Platform REST API
+# Skill Bridge Frontend
 
-A comprehensive REST API built with **Express.js**, **TypeScript**, and **Prisma ORM** for a tutoring platform. This API follows a modular architecture pattern and integrates seamlessly with **Better Auth** for authentication.
+A modern, production-ready Next.js frontend for the Skill Bridge tutoring platform. Built with TypeScript, Tailwind CSS, TanStack Query, Redux, and Better Auth for seamless authentication.
 
-## 🚀 Features
+## Features
 
-- **Better Auth Integration** - Uses Better Auth for user authentication and session management
-- **User Authentication** - Session-based authentication with role-based access control (STUDENT, TUTOR, ADMIN)
-- **Tutor Profiles** - Create and manage tutor profiles with categories and availability
-- **Booking System** - Instant booking confirmation, manage bookings, track status
-- **Review System** - Students can review tutors, tutors can respond
-- **Category Management** - Organize tutors by categories/subjects
-- **Availability Management** - Tutors can set their weekly availability
-- **Dashboard Analytics** - Role-specific dashboards with statistics and insights
-  - Student Dashboard: Bookings overview, favorite tutors, spending stats
-  - Tutor Dashboard: Session stats, earnings, upcoming sessions, reviews
-  - Admin Dashboard: Platform statistics, user management, revenue tracking
-- **Admin Panel** - Admin endpoints for user and content management
-- **Rate Limiting** - Protection against abuse
-- **Input Validation** - Comprehensive request validation
-- **Error Handling** - Centralized error handling
-- **Database Migrations** - Prisma migrations for schema changes
-- **Complete User Journeys** - Documented workflows for students, tutors, and admins
+- **Secure Authentication** - Better Auth integration with HTTP-only cookies
+- **Modular Architecture** - Well-organized components and utilities for scalability
+- **Type Safety** - Full TypeScript support with Zod validation schemas
+- **State Management** - Redux for global state + TanStack Query for server state
+- **Form Handling** - TanStack Form with comprehensive validation
+- **Responsive Design** - Mobile-first Tailwind CSS styling
+- **API Integration** - Centralized API client with error handling
+- **User Features** - Authentication, profile management, tutor search, booking system
+- **Tutor Features** - Profile creation, availability management, student bookings
+- **Real-time Updates** - TanStack Query for automatic cache invalidation
+- **Production Ready** - Deployment guides and security best practices included
 
-## 📋 Prerequisites
+## Tech Stack
 
-- Node.js (v18 or higher)
-- PostgreSQL database
-- Better Auth setup (for authentication)
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript 5 |
+| Styling | Tailwind CSS 3 |
+| State | Redux Toolkit + React Redux |
+| Data Fetching | TanStack Query v5 |
+| Forms | TanStack Form + Zod |
+| Auth | Better Auth |
+| HTTP | Native Fetch API |
+
+## Project Structure
+
+```
+skill-bridge-frontend/
+├── app/                              # Next.js App Router
+│   ├── auth/                         # Authentication routes
+│   │   ├── signin/page.tsx
+│   │   └── signup/page.tsx
+│   ├── dashboard/                    # Protected routes
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   ├── profile/page.tsx
+│   │   ├── tutors/
+│   │   ├── bookings/
+│   │   ├── tutor/
+│   │   └── availability/page.tsx
+│   ├── layout.tsx
+│   ├── page.tsx                      # Landing page
+│   ├── error.tsx                     # Error boundary
+│   ├── not-found.tsx                 # 404 page
+│   └── globals.css                   # Global styles
+├── components/                       # Reusable components
+│   ├── auth/                         # Auth forms
+│   ├── bookings/                     # Booking UI
+│   ├── layout/                       # Layout components
+│   ├── tutors/                       # Tutor cards
+│   └── ui/                           # Utility components
+├── lib/                              # Core utilities
+│   ├── api/                          # API client
+│   ├── auth/                         # Auth setup
+│   ├── hooks/                        # TanStack Query hooks
+│   ├── redux/                        # Redux store
+│   ├── validations/                  # Zod schemas
+│   └── utils.ts
+├── types/                            # TypeScript types
+├── providers.tsx                     # Root providers
+├── package.json
+├── tailwind.config.ts
+├── tsconfig.json
+└── README.md
+```
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+ (recommended: 20+)
 - npm or yarn
+- Backend API running on `http://localhost:3001`
 
-## 🛠️ Installation
-
-1. **Clone the repository**
-
-   ```bash
-   cd skill-bridge-backend
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-
-   ```bash
-   cp .env.example .env
-   ```
-
-   Edit `.env` with your configuration:
-
-   ```env
-   PORT=5000
-   NODE_ENV=development
-   DATABASE_URL="postgresql://username:password@localhost:5432/tutoring_db"
-   CORS_ORIGIN=http://localhost:5173
-   ```
-
-   **Note**: Authentication is handled by Better Auth. See `BETTER_AUTH_INTEGRATION.md` for setup instructions.
-
-4. **Generate Prisma client**
-
-   ```bash
-   npm run prisma:generate
-   ```
-
-5. **Run database migrations**
-
-   ```bash
-   npm run prisma:migrate
-   ```
-
-6. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-
-The API will be running at `http://localhost:5000`
-
-## 🔌 API Endpoints
-
-### Authentication
-
-**Note**: Authentication endpoints (register, login, OAuth) are handled by Better Auth, not this API.
-
-See [BETTER_AUTH_INTEGRATION.md](BETTER_AUTH_INTEGRATION.md) for authentication setup.
-
-### Users
-
-#### Get Current User Profile
-
-```http
-GET /api/users/profile
-Authorization: Bearer <token>
-```
-
-#### Update Profile
-
-```http
-PUT /api/users/profile
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "name": "John Doe Updated",
-  "bio": "I love learning!",
-  "phone": "+1234567890"
-}
-```
-
-### Tutors
-
-#### Create Tutor Profile
-
-```http
-POST /api/tutors/profile
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "title": "Math Expert",
-  "headline": "10+ years of teaching experience",
-  "description": "Specialized in calculus and algebra",
-  "hourlyRate": 50.00,
-  "experience": 10,
-  "education": "PhD in Mathematics",
-  "categoryIds": ["category_id_1", "category_id_2"]
-}
-```
-
-#### Search Tutors
-
-```http
-GET /api/tutors/search?page=1&limit=10&categoryId=xxx&minRate=20&maxRate=100&minRating=4&search=math
-```
-
-#### Get Tutor Profile
-
-```http
-GET /api/tutors/:tutorId
-```
-
-#### Update Tutor Profile
-
-```http
-PUT /api/tutors/profile
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "title": "Updated Title",
-  "hourlyRate": 60.00,
-  "isAvailable": true
-}
-```
-
-### Bookings
-
-#### Create Booking
-
-```http
-POST /api/bookings
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "tutorId": "tutor_user_id",
-  "subject": "Calculus Help",
-  "sessionDate": "2024-02-15",
-  "startTime": "14:00",
-  "endTime": "15:30",
-  "studentNotes": "Need help with derivatives"
-}
-```
-
-#### Get My Bookings
-
-```http
-GET /api/bookings/my-bookings?page=1&limit=10&status=PENDING
-Authorization: Bearer <token>
-```
-
-#### Get Booking by ID
-
-```http
-GET /api/bookings/:bookingId
-Authorization: Bearer <token>
-```
-
-#### Update Booking Status
-
-```http
-PUT /api/bookings/:bookingId
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "status": "CONFIRMED",
-  "tutorNotes": "Looking forward to the session"
-}
-```
-
-#### Cancel Booking
-
-```http
-POST /api/bookings/:bookingId/cancel
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "reason": "Schedule conflict"
-}
-```
-
-#### Get Booking Stats
-
-```http
-GET /api/bookings/stats
-Authorization: Bearer <token>
-```
-
-### Reviews
-
-#### Create Review
-
-```http
-POST /api/reviews
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "bookingId": "booking_id",
-  "rating": 5,
-  "comment": "Excellent tutor! Very helpful."
-}
-```
-
-#### Get Tutor Reviews
-
-```http
-GET /api/reviews/tutor/:tutorId?page=1&limit=10
-```
-
-#### Respond to Review (Tutor)
-
-```http
-POST /api/reviews/:reviewId/respond
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "response": "Thank you for the kind words!"
-}
-```
-
-### Categories
-
-#### Get All Categories
-
-```http
-GET /api/categories
-```
-
-#### Create Category (Admin)
-
-```http
-POST /api/categories
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "name": "Mathematics",
-  "slug": "mathematics",
-  "description": "Math subjects",
-  "icon": "calculator",
-  "color": "#FF5733"
-}
-```
-
-#### Update Category (Admin)
-
-```http
-PUT /api/categories/:categoryId
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "name": "Advanced Mathematics",
-  "isActive": true
-}
-```
-
-### Availability
-
-#### Add Availability (Tutor)
-
-```http
-POST /api/availability
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "dayOfWeek": "MONDAY",
-  "startTime": "09:00",
-  "endTime": "17:00"
-}
-```
-
-#### Get Tutor Availability
-
-```http
-GET /api/availability/tutor/:tutorId
-```
-
-#### Bulk Add Availability (Tutor)
-
-```http
-POST /api/availability/bulk
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "slots": [
-    {
-      "dayOfWeek": "MONDAY",
-      "startTime": "09:00",
-      "endTime": "12:00"
-    },
-    {
-      "dayOfWeek": "TUESDAY",
-      "startTime": "14:00",
-      "endTime": "18:00"
-    }
-  ]
-}
-```
-
-### Dashboards
-
-#### Get Student Dashboard
-
-```http
-GET /api/dashboard/student
-Authorization: Bearer <token>
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "data": {
-    "overview": {
-      "totalBookings": 5,
-      "completedSessions": 3,
-      "pendingSessions": 0,
-      "totalSpent": 225.00
-    },
-    "upcomingBookings": [...],
-    "recentBookings": [...],
-    "favoriteTutors": [...]
-  }
-}
-```
-
-#### Get Tutor Dashboard
-
-```http
-GET /api/dashboard/tutor
-Authorization: Bearer <token>
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "data": {
-    "overview": {
-      "totalSessions": 25,
-      "completedSessions": 20,
-      "pendingSessions": 2,
-      "totalEarnings": 1250.00,
-      "thisMonthEarnings": 350.00,
-      "studentsCount": 12,
-      "averageRating": 4.85,
-      "totalReviews": 18
-    },
-    "upcomingSessions": [...],
-    "recentSessions": [...],
-    "recentReviews": [...]
-  }
-}
-```
-
-#### Get Admin Dashboard
-
-```http
-GET /api/dashboard/admin
-Authorization: Bearer <token>
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "data": {
-    "overview": {
-      "totalUsers": 150,
-      "totalTutors": 45,
-      "totalStudents": 100,
-      "totalBookings": 320,
-      "totalRevenue": 14250.00,
-      "bookingGrowth": 15.5
-    },
-    "recentUsers": [...],
-    "recentBookings": [...],
-    "topTutors": [...]
-  }
-}
-```
-
-#### Get Booking Statistics
-
-```http
-GET /api/dashboard/stats?startDate=2024-01-01&endDate=2024-01-31
-Authorization: Bearer <token>
-```
-
-## 🔐 Authentication
-
-This API integrates with **Better Auth** for authentication. Better Auth handles user registration, login, OAuth providers, and session management.
-
-**How it works:**
-
-1. User authenticates via Better Auth
-2. Better Auth generates a session token
-3. Frontend includes token in requests: `Authorization: Bearer <session_token>`
-4. This API validates the session token from the database
-
-For detailed integration instructions, see **[BETTER_AUTH_INTEGRATION.md](BETTER_AUTH_INTEGRATION.md)**
-
-**Example request with authentication:**
+### Installation
 
 ```bash
-curl -H "Authorization: Bearer <session_token>" http://localhost:5000/api/users/profile
+# Clone repository
+git clone <repository-url>
+cd skill-bridge-frontend
+
+# Install dependencies
+npm install
+
+# Set up environment
+cp .env.example .env.local
+
+# Update .env.local
+NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_BETTER_AUTH_URL=http://localhost:3001
 ```
-
-## 📊 Booking Status Flow
-
-The platform uses **instant confirmation** for bookings:
-
-```
-CONFIRMED (instant) → COMPLETED (by tutor) or CANCELLED (by student/tutor)
-```
-
-**Status Descriptions:**
-
-- **CONFIRMED**: Booking is instantly confirmed when created
-- **COMPLETED**: Tutor marks the session as complete after it happens
-- **CANCELLED**: Either student or tutor can cancel the booking
-
-**Status Transitions:**
-
-- Student books → Status: **CONFIRMED** (instant)
-- After session → Tutor marks: **COMPLETED**
-- Anytime before session → Can cancel: **CANCELLED**
-- After **COMPLETED** → Student can leave review
-
-## 👥 User Roles
-
-- **STUDENT** - Can book sessions, write reviews
-- **TUTOR** - Can create profile, manage availability, receive bookings
-- **ADMIN** - Full access to all resources
-
-## 📝 Response Format
-
-### Success Response
-
-```json
-{
-  "success": true,
-  "data": { ... },
-  "message": "Operation successful"
-}
-```
-
-### Error Response
-
-```json
-{
-  "success": false,
-  "error": "Error message",
-  "errors": [
-    {
-      "field": "email",
-      "message": "Email is required"
-    }
-  ]
-}
-```
-
-### Paginated Response
-
-```json
-{
-  "success": true,
-  "data": [...],
-  "meta": {
-    "page": 1,
-    "limit": 10,
-    "total": 50,
-    "totalPages": 5
-  }
-}
-```
-
-## 🧪 Testing
-
-```bash
-npm test
-```
-
-## 🏗️ Database Schema
-
-The database includes the following main tables:
-
-- **users** - User accounts
-- **sessions** - User sessions
-- **accounts** - OAuth and credential accounts
-- **tutor_profiles** - Tutor information
-- **categories** - Subject categories
-- **tutor_categories** - Many-to-many relation
-- **availability** - Tutor availability slots
-- **bookings** - Session bookings
-- **reviews** - Tutor reviews
-
-## 🔄 Scripts
-
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build for production
-- `npm start` - Start production server
-- `npm run prisma:generate` - Generate Prisma client
-- `npm run prisma:migrate` - Run database migrations
-- `npm run prisma:studio` - Open Prisma Studio
 
 ### Development
 
-- typescript - Type safety
-- tsx - TypeScript execution
-- prisma - Database toolkit
-- eslint - Code linting
-- prettier - Code formatting
+```bash
+npm run dev
+```
 
-## 🤝 Contributing
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+### Production Build
 
-## 👨‍💻 Author
+```bash
+npm run build
+npm start
+```
 
-Mohammad Yusuf
+## Architecture Highlights
 
-## 🙏 Acknowledgments
+### Authentication Flow
 
-- Prisma for the excellent ORM
-- Express.js community
-- TypeScript team
+1. User signs up/in via `/auth/signup` or `/auth/signin`
+2. Better Auth issues HTTP-only cookie
+3. `AuthProvider` fetches session and syncs with Redux
+4. Protected routes via `useAuth()` hook
+5. API client automatically includes cookies
+
+### State Management
+
+- **Global UI State**: Redux (sidebar, theme, notifications)
+- **Auth State**: Redux + AuthProvider sync
+- **Server State**: TanStack Query (tutors, bookings, profiles)
+- **Form State**: TanStack Form with real-time validation
+
+### API Integration
+
+- Centralized `apiClient` in `lib/api/client.ts`
+- Custom hooks for each resource (users, tutors, bookings, etc.)
+- Automatic cache invalidation after mutations
+- Standardized error handling and notifications
+
+### Cookie Configuration
+
+Better Auth is configured for production deployment:
+
+```typescript
+// Secure cookies in production
+fetchOptions: { credentials: 'include' }
+advanced: {
+  useSecureCookies: NODE_ENV === 'production',
+  cookiePrefix: 'better-auth',
+  crossSubDomainCookies: { enabled: false },
+}
+```
+
+## Key Pages
+
+### Public Pages
+- `/` - Landing page with feature overview
+- `/auth/signin` - User login
+- `/auth/signup` - User registration
+
+### Protected Pages (Authenticated Users)
+- `/dashboard` - Main dashboard
+- `/dashboard/profile` - Edit user profile
+- `/dashboard/tutors` - Search and browse tutors
+- `/dashboard/tutors/[id]` - Tutor profile & booking
+- `/dashboard/bookings` - Manage bookings
+
+### Tutor-Only Pages
+- `/dashboard/tutor/profile` - Create/edit tutor profile
+- `/dashboard/availability` - Manage availability
+
+## API Integration
+
+All endpoints match the backend API:
+
+### User Endpoints
+- `GET /api/users/profile` - Get user profile
+- `PUT /api/users/profile` - Update profile
+
+### Tutor Endpoints
+- `GET /api/tutors` - List all tutors
+- `GET /api/tutors/search` - Search tutors
+- `POST /api/tutors/profile` - Create profile
+- `PUT /api/tutors/profile` - Update profile
+
+### Booking Endpoints
+- `POST /api/bookings` - Create booking
+- `GET /api/bookings/my-bookings` - Get user bookings
+- `PUT /api/bookings/:id` - Update booking
+- `POST /api/bookings/:id/cancel` - Cancel booking
+
+See `DEPLOYMENT.md` for full endpoint documentation.
+
+## Development Guidelines
+
+### Adding a Page
+
+1. Create route in `app/` following Next.js conventions
+2. Add supporting components in `components/`
+3. Create TanStack Query hooks in `lib/hooks/` if needed
+4. Add validation schema in `lib/validations/`
+
+### Creating an API Hook
+
+```typescript
+// lib/hooks/use-resource.ts
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { apiClient } from '@/lib/api/client'
+
+export function useGetResource(id: string) {
+  return useQuery({
+    queryKey: ['resource', id],
+    queryFn: async () => {
+      const response = await apiClient.get(`/api/resource/${id}`)
+      if (!response.success) throw new Error(response.error)
+      return response.data
+    },
+  })
+}
+```
+
+### Form Validation
+
+```typescript
+// lib/validations/form.ts
+import { z } from 'zod'
+
+export const schema = z.object({
+  email: z.string().email(),
+  name: z.string().min(2),
+})
+
+export type Input = z.infer<typeof schema>
+```
+
+## Deployment
+
+### Vercel (Recommended)
+
+1. Connect repository to Vercel
+2. Add environment variables:
+   - `NEXT_PUBLIC_API_URL=https://api.yourdomain.com`
+3. Deploy with `git push`
+
+### Docker
+
+```bash
+docker build -t skill-bridge-frontend .
+docker run -p 3000:3000 \
+  -e NEXT_PUBLIC_API_URL=https://api.yourdomain.com \
+  skill-bridge-frontend
+```
+
+See `DEPLOYMENT.md` for detailed deployment guides, scaling considerations, and troubleshooting.
+
+## Error Handling
+
+All errors are caught and displayed as toast notifications. The API client ensures consistent error formatting:
+
+```typescript
+// Automatic error handling
+try {
+  await mutation.mutateAsync(data)
+} catch (error: any) {
+  dispatch(addNotification({
+    type: 'error',
+    message: error.message || 'An error occurred'
+  }))
+}
+```
+
+## Performance Optimization
+
+- **Code Splitting**: Automatic per-route and per-component
+- **Image Optimization**: Next.js image component (if added)
+- **Caching**: 5-minute stale time for server state
+- **Tree Shaking**: Unused code removed in production
+
+## Browser Support
+
+- Chrome (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
+
+## Environment Variables
+
+```env
+# Required
+NEXT_PUBLIC_API_URL=http://localhost:3001
+
+# Optional
+NEXT_PUBLIC_BETTER_AUTH_URL=http://localhost:3001
+NODE_ENV=development
+```
+
+## Scripts
+
+```bash
+npm run dev      # Start development server
+npm run build    # Build for production
+npm start        # Start production server
+npm run lint     # Run ESLint
+```
+
+## Security
+
+- ✅ HTTPS-only cookies in production
+- ✅ HTTP-only cookie flag (server-set)
+- ✅ CORS credentials properly configured
+- ✅ Zod input validation
+- ✅ XSS protection (Next.js)
+- ✅ CSRF protection (Better Auth)
+
+## Troubleshooting
+
+**Cookies not working?**
+- Verify HTTPS in production
+- Check backend CORS configuration
+- Ensure `credentials: 'include'` in API calls
+
+**Session lost on reload?**
+- Check AuthProvider is at app root
+- Verify useSession hook initialization
+- Check Redux store setup
+
+**Form validation failing?**
+- Verify Zod schema is imported
+- Check TanStack Form setup
+- Review error messages in console
+
+## Contributing
+
+Follow the modular architecture pattern. Keep components focused and single-responsibility.
+
+## Support & Documentation
+
+- See `DEPLOYMENT.md` for deployment guide
+- Backend API docs in backend repository
+- Better Auth docs: [betterauth.dev](https://www.betterauth.dev)
+- Next.js docs: [nextjs.org](https://nextjs.org)
+
+## License
+
+Proprietary - Skill Bridge
+
+## Author
+
+Mohammad Yusuf (Backend)
+Frontend built with modern Next.js best practices

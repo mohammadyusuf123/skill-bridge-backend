@@ -1,41 +1,35 @@
 {
-  "name": "skill-bridge-backend",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npx tsx watch src/server/server.ts",
-    "seed": "tsx src/scripts/seed.ts",
-    "build": "prisma generate && tsup src/server/index.ts --format esm --platform node --target node20 --outDir api --external pg-native",
-    "postinstall": "prisma generate"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "name": "skill-bridge-frontend",
+  "version": "0.1.0",
+  "private": true,
   "type": "module",
-  "devDependencies": {
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/node": "^25.0.10",
-    "@types/pg": "^8.16.0",
-    "prisma": "^7.3.0",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.0.2",
-    "@prisma/adapter-neon": "^7.3.0",
-    "@prisma/adapter-pg": "^7.3.0",
-    "@prisma/client": "^7.3.0",
-    "bcryptjs": "^3.0.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "next": "^16.0.0",
+    "@tanstack/react-query": "^5.51.0",
+    "@tanstack/react-form": "^0.11.0",
+    "@tanstack/zod-form-adapter": "^0.11.0",
+    "@reduxjs/toolkit": "^1.9.7",
+    "redux-js": "^1.9.7",
+    "react-redux": "^8.1.3",
     "better-auth": "^1.4.17",
-    "cors": "^2.8.6",
-    "dotenv": "^17.2.3",
-    "express": "^5.2.1",
-    "express-validator": "^7.3.1",
-    "pg": "^8.17.2",
-    "serverless-http": "^4.0.0",
-    "tsup": "^8.5.1"
+    "zod": "^3.22.4",
+    "tailwindcss": "^3.4.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.10.6",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.1"
   }
 }
