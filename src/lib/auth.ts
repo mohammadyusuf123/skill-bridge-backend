@@ -11,57 +11,31 @@ export const auth = betterAuth({
 
   trustedOrigins: [
     process.env.APP_URL!, // frontend URL
+    "https://skill-bridge-fronted-production.up.railway.app", // Add explicitly
   ],
- session: {
+
+  session: {
     cookieCache: {
       enabled: true,
       maxAge: 5 * 60, // 5 minutes
     },
   },
- advanced: {
-        crossSubDomainCookies: {
-            enabled: true,
-            domain: "https://skill-bridge-fronted-production.up.railway.app", // your domain
-        },
+
+  // FIX: Remove crossSubDomainCookies since your frontend and backend are on different domains
+  // crossSubDomainCookies is for subdomains like api.example.com and app.example.com
+  // You're using vercel.app and railway.app which are different domains
+  
+  advanced: {
+    // Use custom cookie settings instead
+    useSecureCookies: true, // Force secure cookies
+    cookieOptions: {
+      sameSite: "none", // ✅ Required for cross-domain
+      secure: true,      // ✅ Required for sameSite: none
+      httpOnly: true,
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
     },
-
-  
-
-  // advanced: {
-  //   cookies: {
-  //     sessionToken: {
-  //       name: "better-auth.session",
-  //       attributes: {
-  //         httpOnly: true,
-  //         secure: true,          // ✅ REQUIRED on Vercel
-  //          sameSite: "lax", // ✅ Same-origin, so "lax" works
-  //       path: "/",
-  //       },
-  //     },
-  //   },
-  // },
-//  session: {
-//     cookieCache: {
-//       enabled: true,
-//       maxAge: 5 * 60, // 5 minutes
-//     },
-//   },
-  // advanced: {
-  //   cookies: {
-  //      cookie: {
-  //   name: "better-auth.session_token",
-  //   httpOnly: true,
-  //   secure: process.env.NODE_ENV === "production",
-  //   sameSite: "none",
-  //   domain: process.env.NODE_ENV === "production" ? ".vercel.app" : "localhost",
-  //   path: "/",
-  //   maxAge: 60 * 60 * 24 * 7, // 7 days
-  // },
-  //   }
-    
-    
-  
-  // },
+  },
 
   user: {
     additionalFields: {
