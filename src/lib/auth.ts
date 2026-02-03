@@ -14,32 +14,36 @@ export const auth = betterAuth({
     "https://skill-bridge-fronted-production.up.railway.app", // Add explicitly
   ],
 
-  session: {
-    cookieCache: {
-      enabled: true,
-      maxAge: 5 * 60, // 5 minutes
-    },
-  },
+ 
 
   // FIX: Remove crossSubDomainCookies since your frontend and backend are on different domains
   // crossSubDomainCookies is for subdomains like api.example.com and app.example.com
   // You're using vercel.app and railway.app which are different domains
   
+  // ✅ CRITICAL: Configure cookies for cross-origin
   advanced: {
-    // Use custom cookie settings instead
-    useSecureCookies: true, // Force secure cookies
-     generateSessionToken: () => {
-      return crypto.randomUUID(); // Ensure session tokens are generated
+    cookies: {
+      sessionToken: {
+        name: "better-auth.session_token",
+        options: {
+          httpOnly: true,
+          secure: true,           // Required for production
+          sameSite: "none",       // ✅ Required for cross-domain
+          path: "/",
+          maxAge: 60 * 60 * 24 * 7, // 7 days
+        },
+      },
     },
-    cookieOptions: {
-      sameSite: "none", // ✅ Required for cross-domain
-      secure: true,      // ✅ Required for sameSite: none
-      httpOnly: true,
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    },
+    useSecureCookies: true,
   },
 
+
+  session: {
+    cookieCache: {
+      enabled: true,
+          maxAge: 5 * 60,
+        },
+      },
   user: {
     additionalFields: {
       phone: { type: "string", required: false },
