@@ -48,17 +48,27 @@ app.use(
     exposedHeaders: ["Set-Cookie"],
   }),
 );
+interface CookieOptions {
+  secure: boolean;
+  httpOnly: boolean;
+  sameSite: string;
+  domain: string;
+  maxAge: number;
+  proxy?: boolean; // Add the 'proxy' property here
+}
+
 app.use(session({
-  secret: 'your-secret',
+  secret: process.env.BETTER_AUTH_SECRET!,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: true,              // HTTPS only
-    httpOnly: true,            // Prevent XSS
-    sameSite: 'none',          // Allow cross-site cookies
-    domain: '.vercel.app',     // Or remove domain entirely
-    maxAge: 24 * 60 * 60 * 1000
-  }
+    secure: true,
+    httpOnly: true,
+    sameSite: 'none',
+    domain: '.vercel.app',
+    maxAge: 24 * 60 * 60 * 1000,
+    proxy: true, // Use the 'proxy' property here
+  } as CookieOptions
 }));
 
 app.use(express.json());
