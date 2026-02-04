@@ -48,7 +48,7 @@ app.use(
 
 app.use(express.json());
 // Auth routes
-app.use(/^\/api\/auth\/.*/, toNodeHandler(auth))
+app.all("/api/auth/*", toNodeHandler(auth));
 // turor routes
 app.use('/api/tutors', TutorRoutes);
 
