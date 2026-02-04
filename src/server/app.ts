@@ -41,6 +41,11 @@ app.use(express.json());
 // Auth routes
 app.use('/api/auth', toNodeHandler(auth))
 
+// root route
+app.get('/', (req, res) => {
+  res.send('Welcome to the Skill Bridge Backend API');
+});
+
 
 
 export default app;
