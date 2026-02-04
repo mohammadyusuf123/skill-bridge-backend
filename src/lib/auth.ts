@@ -25,9 +25,21 @@ export const auth = betterAuth({
     },
   },
 
+  // ✅ Configure ALL cookies for cross-site
   advanced: {
     useSecureCookies: true,
+    crossSubDomainCookies: {
+      enabled: false, // You're not using subdomains
+    },
+    // Set default cookie options for ALL cookies
+    defaultCookieOptions: {
+      sameSite: "none", // ✅ This applies to ALL cookies
+      secure: true,
+      httpOnly: true,
+      path: "/",
+    },
     cookies: {
+      // Session token cookie
       sessionToken: {
         name: "better-auth.session_token",
         options: {
@@ -35,8 +47,16 @@ export const auth = betterAuth({
           secure: true,
           sameSite: "none",
           path: "/",
-          // ✅ DON'T set domain - let browser handle it
-          // domain: undefined
+        },
+      },
+      // Session data cookie
+      sessionData: {
+        name: "better-auth.session_data",
+        options: {
+          httpOnly: false, // Frontend needs to read this
+          secure: true,
+          sameSite: "none", // ✅ CRITICAL
+          path: "/",
         },
       },
     },
