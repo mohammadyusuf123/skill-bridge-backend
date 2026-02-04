@@ -39,7 +39,7 @@ app.use(
 
 app.use(express.json());
 // Auth routes
-app.use('/api/auth/*', toNodeHandler(auth))
+app.use('/api/auth/:path*', toNodeHandler(auth))
 // turor routes
 app.use('/api/tutors', TutorRoutes);
 
