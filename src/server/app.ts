@@ -3,6 +3,7 @@ import cors from "cors";
 // REMOVE: import session from "express-session";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "../lib/auth";
+import { TutorRoutes } from "./modules/tutors/tutors.routes";
 
 const app = express();
 
@@ -37,9 +38,10 @@ app.use(
 // REMOVE the session middleware - Better Auth handles it
 
 app.use(express.json());
-
 // Auth routes
 app.use('/api/auth', toNodeHandler(auth))
+// turor routes
+app.use('/api/tutors', TutorRoutes);
 
 // root route
 app.get('/', (req, res) => {
