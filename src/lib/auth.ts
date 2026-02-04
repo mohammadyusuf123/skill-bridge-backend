@@ -3,13 +3,13 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./prisma";
 
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL, // e.g., https://skill-bridge-backend-production-27ac.up.railway.app
+  baseURL: process.env.BETTER_AUTH_URL,
 
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
 
-  secret: process.env.BETTER_AUTH_SECRET!, // Make sure this is set
+  secret: process.env.BETTER_AUTH_SECRET!,
 
   trustedOrigins: [
     "https://skill-bridge-fronted-production.up.railway.app",
@@ -17,26 +17,26 @@ export const auth = betterAuth({
   ],
 
   session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 days
-    updateAge: 60 * 60 * 24, // update every day
+    expiresIn: 60 * 60 * 24 * 7,
+    updateAge: 60 * 60 * 24,
     cookieCache: {
       enabled: true,
       maxAge: 5 * 60,
     },
   },
 
-  // Simplified cookie config
   advanced: {
     useSecureCookies: true,
     cookies: {
       sessionToken: {
-        name: "better-auth.session_token", // Use default name
+        name: "better-auth.session_token",
         options: {
           httpOnly: true,
           secure: true,
           sameSite: "none",
           path: "/",
-          maxAge: 60 * 60 * 24 * 7,
+          // ✅ DON'T set domain - let browser handle it
+          // domain: undefined
         },
       },
     },
