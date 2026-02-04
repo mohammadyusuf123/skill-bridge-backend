@@ -39,7 +39,7 @@ app.use(
 app.use(express.json());
 
 // Auth routes
-app.all('/api/auth/:path(*)', toNodeHandler(auth))
+app.use('/api/auth', toNodeHandler(auth))
 
 
 
