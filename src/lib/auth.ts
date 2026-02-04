@@ -19,47 +19,22 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 24,
-    cookieCache: {
-      enabled: true,
-      maxAge: 5 * 60,
+  },
+
+  // ✅ Force cross-origin cookie settings
+  advanced: {
+    useSecureCookies: true,
+    cookiePrefix: "better-auth",
+    crossSubDomainCookies: {
+      enabled: false,
     },
   },
 
-  // ✅ Configure ALL cookies for cross-site
-  advanced: {
-    useSecureCookies: true,
-    crossSubDomainCookies: {
-      enabled: false, // You're not using subdomains
-    },
-    // Set default cookie options for ALL cookies
-    defaultCookieOptions: {
-      sameSite: "none", // ✅ This applies to ALL cookies
-      secure: true,
-      httpOnly: true,
-      path: "/",
-    },
-    cookies: {
-      // Session token cookie
-      sessionToken: {
-        name: "better-auth.session_token",
-        options: {
-          httpOnly: true,
-          secure: true,
-          sameSite: "none",
-          path: "/",
-        },
-      },
-      // Session data cookie
-      sessionData: {
-        name: "better-auth.session_data",
-        options: {
-          httpOnly: false, // Frontend needs to read this
-          secure: true,
-          sameSite: "none", // ✅ CRITICAL
-          path: "/",
-        },
-      },
-    },
+  // ✅ Override default cookie attributes
+  cookie: {
+    sameSite: "none" as const,
+    secure: true,
+    httpOnly: true,
   },
 
   user: {

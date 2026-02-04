@@ -6,37 +6,13 @@ import { auth } from "../lib/auth";
 import { TutorRoutes } from "./modules/tutors/tutors.routes";
 
 const app = express();
-// Helper function to normalize URLs (remove trailing slashes)
-const normalizeOrigin = (origin: string) => {
-  return origin?.replace(/\/$/, ''); // Remove trailing slash
-};
-const allowedOrigins = [
-  process.env.APP_URL || "http://localhost:3000",
-  process.env.PROD_APP_URL,
-].filter(Boolean);
-
+// CORS
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, Postman, etc.)
-      if (!origin) return callback(null, true);
-
-      // Normalize the origin by removing trailing slash
-      const normalizedOrigin = normalizeOrigin(origin);
-
-      // Check if normalized origin is allowed
-      const isAllowed =
-        allowedOrigins.includes(normalizedOrigin) ||
-        /^https:\/\/.*\.railway\.app$/.test(normalizedOrigin) ||
-        /^https:\/\/.*\.vercel\.app$/.test(normalizedOrigin);
-
-      if (isAllowed) {
-        callback(null, true);
-      } else {
-        console.error(`CORS blocked origin: ${origin}`); // For debugging
-        callback(new Error(`Origin ${origin} not allowed by CORS`));
-      }
-    },
+    origin: [
+      "https://skill-bridge-fronted-production.up.railway.app",
+      "http://localhost:3000",
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
@@ -44,11 +20,33 @@ app.use(
   }),
 );
 
-// REMOVE the session middleware - Better Auth handles it
-
 app.use(express.json());
+
 // Auth routes
 app.use("/api/auth", toNodeHandler(auth));
+
+// ✅ MIDDLEWARE: Force SameSite=None on all Set-Cookie headers
+app.use((req, res, next) => {
+  const originalSetHeader = res.setHeader.bind(res);
+  
+  res.setHeader = function (name: string, value: any) {
+    if (name.toLowerCase() === 'set-cookie') {
+      const cookies = Array.isArray(value) ? value : [value];
+      const modifiedCookies = cookies.map((cookie: string) => {
+        // Replace SameSite=Lax or SameSite=Strict with SameSite=None
+        return cookie
+          .replace(/SameSite=Lax/gi, 'SameSite=None')
+          .replace(/SameSite=Strict/gi, 'SameSite=None')
+          // Ensure Secure flag is present
+          .replace(/;(?!\s*Secure)/g, '; Secure');
+      });
+      return originalSetHeader('Set-Cookie', modifiedCookies);
+    }
+    return originalSetHeader(name, value);
+  };
+  
+  next();
+});
 // turor routes
 app.use('/api/tutors', TutorRoutes);
 
