@@ -3,47 +3,45 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./prisma";
 
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL, // backend URL
+  baseURL: process.env.BETTER_AUTH_URL, // e.g., https://skill-bridge-backend-production-27ac.up.railway.app
 
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
 
+  secret: process.env.BETTER_AUTH_SECRET!, // Make sure this is set
+
   trustedOrigins: [
-    process.env.APP_URL!, // frontend URL
-    "https://skill-bridge-fronted-production.up.railway.app", // Add explicitly
+    "https://skill-bridge-fronted-production.up.railway.app",
+    "http://localhost:3000",
   ],
 
- 
+  session: {
+    expiresIn: 60 * 60 * 24 * 7, // 7 days
+    updateAge: 60 * 60 * 24, // update every day
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60,
+    },
+  },
 
-  // FIX: Remove crossSubDomainCookies since your frontend and backend are on different domains
-  // crossSubDomainCookies is for subdomains like api.example.com and app.example.com
-  // You're using vercel.app and railway.app which are different domains
-  
-  // ✅ CRITICAL: Configure cookies for cross-origin
+  // Simplified cookie config
   advanced: {
+    useSecureCookies: true,
     cookies: {
       sessionToken: {
-        name: "auth-token",
+        name: "better-auth.session_token", // Use default name
         options: {
           httpOnly: true,
-          secure: true,           // Required for production
-          sameSite: "none",       // ✅ Required for cross-domain
+          secure: true,
+          sameSite: "none",
           path: "/",
-          maxAge: 60 * 60 * 24 * 7, // 7 days
+          maxAge: 60 * 60 * 24 * 7,
         },
       },
     },
-    useSecureCookies: true,
   },
 
-
-  session: {
-    cookieCache: {
-      enabled: true,
-          maxAge: 5 * 60,
-        },
-      },
   user: {
     additionalFields: {
       phone: { type: "string", required: false },
