@@ -2,12 +2,13 @@
   "name": "skill-bridge-backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+
+  "main": "api/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "npx tsx watch src/server/server.ts",
-    "seed": "tsx src/scripts/seed.ts",
     "build": "prisma generate && tsup src/server/index.ts --format esm --platform node --target node20 --outDir api --external pg-native",
+    "start": "node api/index.js",
+    "seed": "tsx src/scripts/seed.ts",
     "postinstall": "prisma generate"
   },
   "keywords": [],
