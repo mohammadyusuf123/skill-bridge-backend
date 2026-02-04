@@ -41,4 +41,6 @@ app.use(express.json());
 // Auth routes
 app.all('/api/auth/:path(*)', toNodeHandler(auth))
 
+
+
 export default app;

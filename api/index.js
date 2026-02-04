@@ -470,7 +470,7 @@ app.use(
   })
 );
 app.use(express.json());
-app.all("/api/auth/*", toNodeHandler(auth));
+app.all("/api/auth/:path(*)", toNodeHandler(auth));
 var app_default = app;
 
 // src/server/index.ts
