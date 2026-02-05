@@ -111,7 +111,41 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get('/api/auth/check-endpoints', (req, res) => {
+  res.json({
+    availableEndpoints: [
+      '/api/auth/session',
+      '/api/auth/get-session',
+      '/api/auth/signin/email',
+      '/api/auth/signup/email'
+    ],
+    message: 'Check which endpoints actually exist'
+  });
+});
 
+// Test each endpoint
+app.get('/api/test-auth-endpoints', async (req, res) => {
+  const endpoints = [
+    '/api/auth/session',
+    '/api/auth/get-session'
+  ];
+  
+  const results = [];
+  
+  for (const endpoint of endpoints) {
+    try {
+      // Simulate internal call
+      const session = await auth.api.getSession({
+        headers: req.headers as any,
+      });
+      results.push({ endpoint, exists: true, session });
+    } catch (error) {
+      results.push({ endpoint, exists: false, error: error});
+    }
+  }
+  
+  res.json({ results });
+});
 
 // Auth routes
 app.use("/api/auth", toNodeHandler(auth));
