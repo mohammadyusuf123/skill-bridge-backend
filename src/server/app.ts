@@ -6,42 +6,92 @@ import { TutorRoutes } from "./modules/tutors/tutors.routes";
 
 const app = express();
 
-// ✅ Get the backend URL from environment
+// ✅ Get URLs from environment
 const BACKEND_URL = process.env.BETTER_AUTH_URL || 
-                    "skill-bridge-backend-production-27ac.up.railway.app";
+                    "https://skill-bridge-backend-production-27ac.up.railway.app";
 
 const FRONTEND_URL = process.env.APP_URL || 
                      "https://skill-bridge-fronted-production.up.railway.app";
 
-// ✅ CORS Configuration for different subdomains
+// ✅ Improved CORS Configuration
 app.use(
   cors({
     origin: function (origin, callback) {
+      // Normalize the origin - remove trailing slashes
+      const normalizeOrigin = (url: string | undefined) => {
+        if (!url) return url;
+        return url.replace(/\/$/, ''); // Remove trailing slash
+      };
+      
+      const normalizedOrigin = normalizeOrigin(origin);
       const allowedOrigins = [
-        FRONTEND_URL,
+        FRONTEND_URL.replace(/\/$/, ''),
         "http://localhost:3000",
         "https://skill-bridge-fronted-production.up.railway.app"
-      ];
+      ].map(url => url.replace(/\/$/, '')); // Normalize all allowed origins
       
-      // Allow requests with no origin or from allowed origins
-      if (!origin || allowedOrigins.includes(origin)) {
+      console.log('CORS Check:', {
+        receivedOrigin: origin,
+        normalizedOrigin,
+        allowedOrigins
+      });
+      
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!normalizedOrigin) {
+        console.log('Allowing: No origin provided');
+        return callback(null, true);
+      }
+      
+      // Check if origin is in allowed list
+      if (allowedOrigins.includes(normalizedOrigin)) {
+        console.log('Allowing origin:', normalizedOrigin);
         callback(null, true);
       } else {
-        console.log('Blocked by CORS:', origin);
-        callback(new Error('Not allowed by CORS'));
+        console.log('Blocking origin:', normalizedOrigin);
+        console.log('Allowed origins:', allowedOrigins);
+        callback(new Error(`Not allowed by CORS. Origin: ${normalizedOrigin}`));
       }
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedHeaders: [
+      "Content-Type", 
+      "Authorization", 
+      "X-Requested-With",
+      "Cookie",
+      "Accept"
+    ],
     exposedHeaders: ["Set-Cookie"],
     maxAge: 86400, // 24 hours
   })
 );
 
+// ✅ Handle preflight requests explicitly
+app.options('*', cors()); // Enable preflight for all routes
+
 app.use(express.json());
 
-// ✅ Debug middleware - Log all requests
+// ✅ Add headers middleware to ensure CORS headers are set
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Set CORS headers for all responses
+  if (origin && [
+    "https://skill-bridge-fronted-production.up.railway.app",
+    "http://localhost:3000"
+  ].some(allowed => origin.replace(/\/$/, '').includes(allowed.replace(/\/$/, '')))) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie');
+  res.header('Access-Control-Expose-Headers', 'Set-Cookie');
+  
+  next();
+});
+
+// ✅ Debug middleware
 app.use((req, res, next) => {
   console.log('=== REQUEST ===');
   console.log('Method:', req.method);
@@ -49,12 +99,11 @@ app.use((req, res, next) => {
   console.log('Origin:', req.headers.origin);
   console.log('Cookies:', req.headers.cookie);
   console.log('Host:', req.headers.host);
+  console.log('User-Agent:', req.headers['user-agent']);
   next();
 });
 
-// ✅ Choose ONLY ONE of these cookie middleware options:
-
-// OPTION 1: Simple Set-Cookie interceptor (RECOMMENDED)
+// ✅ Cookie interceptor middleware (keep your existing one)
 app.use((req, res, next) => {
   const originalSetHeader = res.setHeader;
   
@@ -83,20 +132,21 @@ app.use((req, res, next) => {
       const modifiedCookies = cookies.map(cookie => {
         console.log('Original cookie:', cookie);
         
-        // 1. Remove existing SameSite
+        // 1. Remove existing SameSite AND Secure flags
         let modified = cookie
           .replace(/; SameSite=Lax/gi, '')
           .replace(/; SameSite=Strict/gi, '')
-          .replace(/; SameSite=None/gi, '');
+          .replace(/; SameSite=None/gi, '')
+          .replace(/; Secure/gi, ''); // Remove existing Secure
         
         // 2. Remove existing Domain if present
         modified = modified.replace(/; Domain=[^;]+/gi, '');
         
-        // 3. Add correct settings
+        // 3. Add correct settings (ONCE)
         modified = modified + '; SameSite=None; Secure; Domain=.railway.app';
         
         // 4. Clean up duplicate semicolons
-        modified = modified.replace(/;;/g, ';');
+        modified = modified.replace(/;;/g, ';').replace(/; $/, '');
         
         console.log('Modified cookie:', modified);
         return modified;
@@ -111,47 +161,35 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/api/auth/check-endpoints', (req, res) => {
+// ✅ Create CORS test endpoint
+app.get('/api/cors-test', (req, res) => {
   res.json({
-    availableEndpoints: [
-      '/api/auth/session',
-      '/api/auth/get-session',
-      '/api/auth/signin/email',
-      '/api/auth/signup/email'
-    ],
-    message: 'Check which endpoints actually exist'
+    success: true,
+    message: 'CORS test successful',
+    origin: req.headers.origin,
+    timestamp: new Date().toISOString()
   });
 });
 
-// Test each endpoint
-app.get('/api/test-auth-endpoints', async (req, res) => {
-  const endpoints = [
-    '/api/auth/session',
-    '/api/auth/get-session'
-  ];
+// ✅ Set test cookie endpoint with CORS headers
+app.get('/api/set-test-cookie', (req, res) => {
+  res.cookie('test_cookie', 'backend_cookie_value', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    domain: '.railway.app',
+    maxAge: 24 * 60 * 60 * 1000
+  });
   
-  const results = [];
-  
-  for (const endpoint of endpoints) {
-    try {
-      // Simulate internal call
-      const session = await auth.api.getSession({
-        headers: req.headers as any,
-      });
-      results.push({ endpoint, exists: true, session });
-    } catch (error) {
-      results.push({ endpoint, exists: false, error: error});
-    }
-  }
-  
-  res.json({ results });
+  res.json({ 
+    success: true, 
+    message: 'Test cookie set',
+    origin: req.headers.origin
+  });
 });
 
-// Auth routes
-app.use("/api/auth", toNodeHandler(auth));
-
-// ✅ Create a test endpoint to check cookies
-app.get('/api/test-cookies', (req, res) => {
+// ✅ Check cookies endpoint
+app.get('/api/check-cookies', (req, res) => {
   res.json({
     success: true,
     cookies: req.headers.cookie || 'No cookies sent',
@@ -163,33 +201,8 @@ app.get('/api/test-cookies', (req, res) => {
   });
 });
 
-// ✅ Create an endpoint to set a test cookie
-app.get('/api/set-test-cookie', (req, res) => {
-  res.cookie('test_cookie', 'backend_cookie_value', {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-    domain: '.railway.app', // Critical for subdomain sharing
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  });
-  
-  res.json({ success: true, message: 'Test cookie set' });
-});
-
-// ✅ Create a test endpoint for the middleware
-app.get('/api/test-middleware', (req, res) => {
-  // Test setting cookies that will be intercepted
-  res.setHeader('Set-Cookie', [
-    'test1=value1; HttpOnly; Secure; SameSite=Lax',
-    'test2=value2; HttpOnly; SameSite=Strict',
-    'test3=value3; Secure'
-  ]);
-  
-  res.json({ 
-    message: 'Check response headers for modified cookies',
-    requestCookies: req.headers.cookie || 'none'
-  });
-});
+// Auth routes
+app.use("/api/auth", toNodeHandler(auth));
 
 // Tutor routes
 app.use('/api/tutors', TutorRoutes);
