@@ -1,60 +1,67 @@
 import express from "express";
 import cors from "cors";
-// REMOVE: import session from "express-session";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "../lib/auth";
 import { TutorRoutes } from "./modules/tutors/tutors.routes";
 
 const app = express();
-// CORS
+
+// ✅ CORS Configuration - Simplified but effective
 app.use(
   cors({
-    origin: [
-      "https://skill-bridge-fronted-production.up.railway.app",
-      "http://localhost:3000",
-    ],
+    origin: function (origin, callback) {
+      const allowedOrigins = [
+        "https://skill-bridge-fronted-production.up.railway.app",
+        "http://localhost:3000",
+      ];
+      
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: ["Set-Cookie"],
-  }),
+  })
 );
 
 app.use(express.json());
 
-// Auth routes
+// ✅ REMOVE the custom middleware that modifies Set-Cookie headers
+// BetterAuth handles cookies internally, your middleware conflicts with it
+
+// Auth routes - Should be registered before any cookie middleware
 app.use("/api/auth", toNodeHandler(auth));
 
-// ✅ MIDDLEWARE: Force SameSite=None on all Set-Cookie headers
+// ✅ Optional: Add a middleware to debug headers (remove in production)
 app.use((req, res, next) => {
-  const originalSetHeader = res.setHeader.bind(res);
-  
-  res.setHeader = function (name: string, value: any) {
-    if (name.toLowerCase() === 'set-cookie') {
-      const cookies = Array.isArray(value) ? value : [value];
-      const modifiedCookies = cookies.map((cookie: string) => {
-        // Replace SameSite=Lax or SameSite=Strict with SameSite=None
-        return cookie
-          .replace(/SameSite=Lax/gi, 'SameSite=None')
-          .replace(/SameSite=Strict/gi, 'SameSite=None')
-          // Ensure Secure flag is present
-          .replace(/;(?!\s*Secure)/g, '; Secure');
-      });
-      return originalSetHeader('Set-Cookie', modifiedCookies);
-    }
-    return originalSetHeader(name, value);
-  };
-  
+  // Log incoming requests for debugging
+  console.log(`${req.method} ${req.url}`);
+  console.log('Origin:', req.headers.origin);
+  console.log('Cookies:', req.headers.cookie);
   next();
 });
-// turor routes
+
+// Tutor routes
 app.use('/api/tutors', TutorRoutes);
 
-// root route
+// Root route
 app.get('/', (req, res) => {
   res.send('Welcome to the Skill Bridge Backend API');
 });
 
-
+// ✅ Add a debug endpoint to check cookies
+app.get('/api/debug/cookies', (req, res) => {
+  res.json({
+    cookies: req.headers.cookie,
+    headers: req.headers,
+  });
+});
 
 export default app;
