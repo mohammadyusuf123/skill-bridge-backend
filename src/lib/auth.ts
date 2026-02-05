@@ -21,15 +21,26 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24,
   },
 
-  // ✅ CRITICAL CHANGE: Configure cookies in advanced section
-  advanced: {
-    useSecureCookies: true,
-    cookieDomain: '.railway.app',
-    cookiesSameSite: 'none', // Change from Lax to None
+  // ✅ USE THIS COOKIE CONFIGURATION - It should override defaults
+  cookie: {
+    name: {
+      sessionToken: "__Secure-better-auth.session_token",
+      callbackUrl: "__Secure-better-auth.callback-url",
+      csrfToken: "__Host-better-auth.csrf-token",
+      state: "__Secure-better-auth.state",
+      nonce: "__Secure-better-auth.nonce",
+      pkceCodeVerifier: "__Secure-better-auth.pkce.code_verifier"
+    },
+    sameSite: "none", // Force none
+    secure: true,
+    httpOnly: true,
+    domain: ".railway.app", // Set domain
+    path: "/",
   },
 
-  // ✅ Remove the cookie block entirely if present
-  // cookie: {}, // REMOVE THIS
+  advanced: {
+    useSecureCookies: true,
+  },
 
   user: {
     additionalFields: {

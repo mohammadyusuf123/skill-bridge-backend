@@ -52,55 +52,67 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ Add headers middleware for cross-domain cookies
+// ✅ Choose ONLY ONE of these cookie middleware options:
+
+// OPTION 1: Simple Set-Cookie interceptor (RECOMMENDED)
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin && [
-    "https://skill-bridge-fronted-production.up.railway.app",
-    "http://localhost:3000"
-  ].includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  next();
-});
-// Replace your current middleware with this:
-app.use((req, res, next) => {
-  const originalSetHeader = res.setHeader.bind(res);
+  const originalSetHeader = res.setHeader;
   
-  res.setHeader = function (name: string, value: any) {
+  res.setHeader = function (name: string, value: string | number | string[]): any {
     if (name.toLowerCase() === 'set-cookie') {
-      console.log('=== SET-COOKIE DEBUG ===');
-      console.log('Original:', value);
+      console.log('=== SET-COOKIE INTERCEPT ===');
       
-      const cookies = Array.isArray(value) ? value : [value];
-      const modifiedCookies = cookies.map((cookie: string) => {
-        // 1. Change SameSite=Lax to SameSite=None
-        let modified = cookie.replace(/SameSite=Lax/gi, 'SameSite=None');
+      // Convert to array of strings
+      const cookies: string[] = [];
+      
+      if (typeof value === 'string') {
+        cookies.push(value);
+      } else if (Array.isArray(value)) {
+        value.forEach((v: string | number) => {
+          if (typeof v === 'string') {
+            cookies.push(v);
+          } else if (typeof v === 'number') {
+            cookies.push(v.toString());
+          }
+        });
+      } else if (typeof value === 'number') {
+        cookies.push(value.toString());
+      }
+      
+      // Modify each cookie
+      const modifiedCookies = cookies.map(cookie => {
+        console.log('Original cookie:', cookie);
         
-        // 2. Ensure Secure flag is present (required for SameSite=None)
-        if (!modified.includes('Secure') && !modified.includes('; Secure')) {
-          modified = modified + '; Secure';
-        }
+        // 1. Remove existing SameSite
+        let modified = cookie
+          .replace(/; SameSite=Lax/gi, '')
+          .replace(/; SameSite=Strict/gi, '')
+          .replace(/; SameSite=None/gi, '');
         
-        // 3. Ensure Domain is set
-        if (!modified.includes('Domain=')) {
-          modified = modified + '; Domain=.railway.app';
-        }
+        // 2. Remove existing Domain if present
+        modified = modified.replace(/; Domain=[^;]+/gi, '');
         
-        console.log('Modified:', modified);
+        // 3. Add correct settings
+        modified = modified + '; SameSite=None; Secure; Domain=.railway.app';
+        
+        // 4. Clean up duplicate semicolons
+        modified = modified.replace(/;;/g, ';');
+        
+        console.log('Modified cookie:', modified);
         return modified;
       });
       
-      return originalSetHeader('Set-Cookie', modifiedCookies);
+      return originalSetHeader.call(this, 'Set-Cookie', modifiedCookies);
     }
-    return originalSetHeader(name, value);
+    
+    return originalSetHeader.call(this, name, value);
   };
   
   next();
 });
+
+
+
 // Auth routes
 app.use("/api/auth", toNodeHandler(auth));
 
@@ -128,6 +140,21 @@ app.get('/api/set-test-cookie', (req, res) => {
   });
   
   res.json({ success: true, message: 'Test cookie set' });
+});
+
+// ✅ Create a test endpoint for the middleware
+app.get('/api/test-middleware', (req, res) => {
+  // Test setting cookies that will be intercepted
+  res.setHeader('Set-Cookie', [
+    'test1=value1; HttpOnly; Secure; SameSite=Lax',
+    'test2=value2; HttpOnly; SameSite=Strict',
+    'test3=value3; Secure'
+  ]);
+  
+  res.json({ 
+    message: 'Check response headers for modified cookies',
+    requestCookies: req.headers.cookie || 'none'
+  });
 });
 
 // Tutor routes
