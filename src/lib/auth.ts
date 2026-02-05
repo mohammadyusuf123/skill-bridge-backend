@@ -2,10 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./prisma";
 
-// IMPORTANT: Remove all cookie domain settings from Better-Auth
-// Let Better-Auth handle cookies automatically
 export const auth = betterAuth({
-  // Use absolute URL
   baseURL: 'https://skill-bridge-backend-production-27ac.up.railway.app',
   
   database: prismaAdapter(prisma, {
@@ -14,9 +11,6 @@ export const auth = betterAuth({
 
   secret: process.env.BETTER_AUTH_SECRET!,
 
-  // ✅ Remove cookie configuration - let Better-Auth handle it
-  // cookie: {}, // REMOVE THIS ENTIRE BLOCK
-  
   trustedOrigins: [
     "https://skill-bridge-fronted-production.up.railway.app",
     "http://localhost:3000",
@@ -27,12 +21,15 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24,
   },
 
-  // ✅ IMPORTANT: Use these advanced settings
+  // ✅ CRITICAL CHANGE: Configure cookies in advanced section
   advanced: {
     useSecureCookies: true,
-    cookieDomain: '.railway.app', // Set domain here instead
-    cookiesSameSite: 'none', // For cross-domain
+    cookieDomain: '.railway.app',
+    cookiesSameSite: 'none', // Change from Lax to None
   },
+
+  // ✅ Remove the cookie block entirely if present
+  // cookie: {}, // REMOVE THIS
 
   user: {
     additionalFields: {

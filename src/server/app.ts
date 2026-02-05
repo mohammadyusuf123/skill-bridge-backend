@@ -66,34 +66,37 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   next();
 });
-// Cookie debugging middleware
+// Replace your current middleware with this:
 app.use((req, res, next) => {
-  // Store original setHeader function
-  const originalSetHeader = res.setHeader;
+  const originalSetHeader = res.setHeader.bind(res);
   
-  // Override setHeader to catch Set-Cookie
-  res.setHeader = function (name: string, value: string | string[]) {
+  res.setHeader = function (name: string, value: any) {
     if (name.toLowerCase() === 'set-cookie') {
-      console.log('=== SET-COOKIE HEADER ===');
-      console.log('Cookies to set:', value);
-      console.log('Request URL:', req.url);
-      console.log('Request Origin:', req.headers.origin);
+      console.log('=== SET-COOKIE DEBUG ===');
+      console.log('Original:', value);
       
-      // Ensure cookies have proper domain
-      if (Array.isArray(value)) {
-        value = value.map(cookie => {
-          if (!cookie.includes('Domain=')) {
-            return `${cookie}; Domain=.railway.app`;
-          }
-          return cookie;
-        });
-      } else if (!value.includes('Domain=')) {
-        value = `${value}; Domain=.railway.app`;
-      }
+      const cookies = Array.isArray(value) ? value : [value];
+      const modifiedCookies = cookies.map((cookie: string) => {
+        // 1. Change SameSite=Lax to SameSite=None
+        let modified = cookie.replace(/SameSite=Lax/gi, 'SameSite=None');
+        
+        // 2. Ensure Secure flag is present (required for SameSite=None)
+        if (!modified.includes('Secure') && !modified.includes('; Secure')) {
+          modified = modified + '; Secure';
+        }
+        
+        // 3. Ensure Domain is set
+        if (!modified.includes('Domain=')) {
+          modified = modified + '; Domain=.railway.app';
+        }
+        
+        console.log('Modified:', modified);
+        return modified;
+      });
       
-      console.log('Modified cookies:', value);
+      return originalSetHeader('Set-Cookie', modifiedCookies);
     }
-    return originalSetHeader.call(this, name, value);
+    return originalSetHeader(name, value);
   };
   
   next();
