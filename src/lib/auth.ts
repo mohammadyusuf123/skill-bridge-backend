@@ -2,36 +2,36 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./prisma";
 
+// IMPORTANT: Remove all cookie domain settings from Better-Auth
+// Let Better-Auth handle cookies automatically
 export const auth = betterAuth({
-  // ✅ Use absolute URL - THIS IS CRITICAL
-  baseURL: process.env.NODE_ENV === 'production'
-    ? 'https://skill-bridge-backend.railway.app' // Your backend URL on Railway
-    : 'http://localhost:5000', // Your backend port
-
+  // Use absolute URL
+  baseURL: 'https://skill-bridge-backend-production-27ac.up.railway.app',
+  
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
 
   secret: process.env.BETTER_AUTH_SECRET!,
 
-  // ✅ Remove trustedOrigins or update them
-  // trustedOrigins is for BetterAuth's built-in CORS, but you're handling CORS in Express
+  // ✅ Remove cookie configuration - let Better-Auth handle it
+  // cookie: {}, // REMOVE THIS ENTIRE BLOCK
   
+  trustedOrigins: [
+    "https://skill-bridge-fronted-production.up.railway.app",
+    "http://localhost:3000",
+  ],
+
   session: {
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 24,
   },
 
-  // ✅ Simplified cookie settings
-  cookie: {
-    sameSite: 'lax', // Start with 'lax', not 'none'
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-  },
-
+  // ✅ IMPORTANT: Use these advanced settings
   advanced: {
-    useSecureCookies: process.env.NODE_ENV === 'production',
-    // Remove crossSubDomainCookies unless you need it
+    useSecureCookies: true,
+    cookieDomain: '.railway.app', // Set domain here instead
+    cookiesSameSite: 'none', // For cross-domain
   },
 
   user: {

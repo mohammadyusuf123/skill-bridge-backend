@@ -66,7 +66,38 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   next();
 });
-
+// Cookie debugging middleware
+app.use((req, res, next) => {
+  // Store original setHeader function
+  const originalSetHeader = res.setHeader;
+  
+  // Override setHeader to catch Set-Cookie
+  res.setHeader = function (name: string, value: string | string[]) {
+    if (name.toLowerCase() === 'set-cookie') {
+      console.log('=== SET-COOKIE HEADER ===');
+      console.log('Cookies to set:', value);
+      console.log('Request URL:', req.url);
+      console.log('Request Origin:', req.headers.origin);
+      
+      // Ensure cookies have proper domain
+      if (Array.isArray(value)) {
+        value = value.map(cookie => {
+          if (!cookie.includes('Domain=')) {
+            return `${cookie}; Domain=.railway.app`;
+          }
+          return cookie;
+        });
+      } else if (!value.includes('Domain=')) {
+        value = `${value}; Domain=.railway.app`;
+      }
+      
+      console.log('Modified cookies:', value);
+    }
+    return originalSetHeader.call(this, name, value);
+  };
+  
+  next();
+});
 // Auth routes
 app.use("/api/auth", toNodeHandler(auth));
 
