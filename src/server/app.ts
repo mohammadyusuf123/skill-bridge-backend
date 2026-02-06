@@ -22,12 +22,34 @@ const allowedOrigins = [
   "https://skill-bridge-fronted-production.up.railway.app"
 ].map(url => url.replace(/\/$/, ''));
 
-// ✅ SIMPLE CORS configuration - remove complex function
+// Add CORS middleware with logging
+app.use((req, res, next) => {
+  console.log('=== CORS DEBUG ===');
+  console.log('Request Origin:', req.headers.origin || 'NO ORIGIN');
+  console.log('Request Cookies:', req.headers.cookie || 'NO COOKIES');
+  console.log('Request Path:', req.path);
+  next();
+});
+
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (server-side calls, Postman, etc.)
+    if (!origin) {
+      console.log('CORS: Allowing request with no origin');
+      return callback(null, true);
+    }
+    
+    if (allowedOrigins.includes(origin)) {
+      console.log('CORS: Allowing origin:', origin);
+      callback(null, true);
+    } else {
+      console.log('CORS: Blocking origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Cookie", "Accept"],
+  allowedHeaders: ["Content-Type", "Authorization", "Accept"],
   exposedHeaders: ["Set-Cookie"],
   maxAge: 86400,
 }));
