@@ -13,65 +13,86 @@ const BACKEND_URL = process.env.BETTER_AUTH_URL ||
 const FRONTEND_URL = process.env.APP_URL || 
                      "https://skill-bridge-fronted-production.up.railway.app";
 
-// ✅ Improved CORS Configuration
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Normalize the origin - remove trailing slashes
-      const normalizeOrigin = (url: string | undefined) => {
-        if (!url) return url;
-        return url.replace(/\/$/, ''); // Remove trailing slash
-      };
-      
-      const normalizedOrigin = normalizeOrigin(origin);
-      const allowedOrigins = [
-        FRONTEND_URL.replace(/\/$/, ''),
-        "http://localhost:3000",
-        "https://skill-bridge-fronted-production.up.railway.app"
-      ].map(url => url.replace(/\/$/, '')); // Normalize all allowed origins
-      
-      console.log('CORS Check:', {
-        receivedOrigin: origin,
-        normalizedOrigin,
-        allowedOrigins
-      });
-      
-      // Allow requests with no origin (like mobile apps or curl)
-      if (!normalizedOrigin) {
-        console.log('Allowing: No origin provided');
-        return callback(null, true);
-      }
-      
-      // Check if origin is in allowed list
-      if (allowedOrigins.includes(normalizedOrigin)) {
-        console.log('Allowing origin:', normalizedOrigin);
-        callback(null, true);
-      } else {
-        console.log('Blocking origin:', normalizedOrigin);
-        console.log('Allowed origins:', allowedOrigins);
-        callback(new Error(`Not allowed by CORS. Origin: ${normalizedOrigin}`));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type", 
-      "Authorization", 
-      "X-Requested-With",
-      "Cookie",
-      "Accept"
-    ],
-    exposedHeaders: ["Set-Cookie"],
-    maxAge: 86400, // 24 hours
-  })
-);
+// ✅ Create CORS middleware configuration
+const corsOptions = {
+  origin: function (origin: string | undefined, callback: Function) {
+    // Normalize the origin - remove trailing slashes
+    const normalizeOrigin = (url: string | undefined) => {
+      if (!url) return url;
+      return url.replace(/\/$/, ''); // Remove trailing slash
+    };
+    
+    const normalizedOrigin = normalizeOrigin(origin);
+    const allowedOrigins = [
+      FRONTEND_URL.replace(/\/$/, ''),
+      "http://localhost:3000",
+      "https://skill-bridge-fronted-production.up.railway.app"
+    ].map(url => url.replace(/\/$/, '')); // Normalize all allowed origins
+    
+    console.log('CORS Check:', {
+      receivedOrigin: origin,
+      normalizedOrigin,
+      allowedOrigins
+    });
+    
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!normalizedOrigin) {
+      console.log('Allowing: No origin provided');
+      return callback(null, true);
+    }
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(normalizedOrigin)) {
+      console.log('Allowing origin:', normalizedOrigin);
+      callback(null, true);
+    } else {
+      console.log('Blocking origin:', normalizedOrigin);
+      console.log('Allowed origins:', allowedOrigins);
+      callback(new Error(`Not allowed by CORS. Origin: ${normalizedOrigin}`));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type", 
+    "Authorization", 
+    "X-Requested-With",
+    "Cookie",
+    "Accept"
+  ],
+  exposedHeaders: ["Set-Cookie"],
+  maxAge: 86400, // 24 hours
+};
 
-// ✅ Handle preflight requests explicitly
-app.options('*', cors()); // Enable preflight for all routes
+// ✅ Apply CORS middleware
+app.use(cors(corsOptions));
+
+// ✅ Handle preflight requests for ALL routes
+app.options('*', (req, res) => {
+  // Get the origin from the request
+  const origin = req.headers.origin;
+  
+  // Check if origin is allowed
+  const allowedOrigins = [
+    FRONTEND_URL.replace(/\/$/, ''),
+    "http://localhost:3000",
+    "https://skill-bridge-fronted-production.up.railway.app"
+  ].map(url => url.replace(/\/$/, ''));
+  
+  if (origin && allowedOrigins.includes(origin.replace(/\/$/, ''))) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie');
+  res.header('Access-Control-Max-Age', '86400');
+  res.status(204).end(); // No content for preflight
+});
 
 app.use(express.json());
 
-// ✅ Add headers middleware to ensure CORS headers are set
+// ✅ Add headers middleware to ensure CORS headers are set for all responses
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
