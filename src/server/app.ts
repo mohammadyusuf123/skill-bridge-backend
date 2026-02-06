@@ -40,6 +40,7 @@ app.use((req, res, next) => {
 });
 
 // ✅ Cookie interceptor middleware - SIMPLIFIED
+// Update your cookie interceptor middleware in app.ts
 app.use((req, res, next) => {
   const originalSetHeader = res.setHeader;
   
@@ -61,13 +62,25 @@ app.use((req, res, next) => {
       const modifiedCookies = cookies.map(cookie => {
         console.log('Original:', cookie);
         
-        // Remove SameSite and existing Domain
-        let modified = cookie
-          .replace(/; SameSite=(Lax|Strict|None)/gi, '')
-          .replace(/; Domain=[^;]+/gi, '')
-          .replace(/; Secure/gi, '');
+        // Check if SameSite is already None
+        if (cookie.includes('SameSite=None')) {
+          console.log('Already has SameSite=None, adding Domain if missing');
+          // Just ensure Domain is set
+          if (!cookie.includes('Domain=')) {
+            return cookie + '; Domain=.railway.app';
+          }
+          return cookie;
+        }
         
-        // Add required attributes
+        // Remove any existing SameSite and ensure proper Domain
+        let modified = cookie
+          .replace(/; SameSite=(Lax|Strict|None)/gi, '') // Remove any SameSite
+          .replace(/; Domain=[^;]+/gi, ''); // Remove existing Domain
+        
+        // Add REQUIRED attributes for cross-domain
+        // CRITICAL: SameSite=None MUST be set for cross-domain
+        // CRITICAL: Secure MUST be true when SameSite=None
+        // Try both domain formats
         modified = modified + '; SameSite=None; Secure; Domain=.railway.app';
         
         // Clean up
