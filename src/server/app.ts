@@ -68,26 +68,21 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // ✅ Handle preflight requests for ALL routes
-app.options('*', (req, res) => {
-  // Get the origin from the request
+app.options('/api/:path*', (req, res) => {
   const origin = req.headers.origin;
   
-  // Check if origin is allowed
-  const allowedOrigins = [
-    FRONTEND_URL.replace(/\/$/, ''),
-    "http://localhost:3000",
-    "https://skill-bridge-fronted-production.up.railway.app"
-  ].map(url => url.replace(/\/$/, ''));
-  
-  if (origin && allowedOrigins.includes(origin.replace(/\/$/, ''))) {
+  if (origin && [
+    "https://skill-bridge-fronted-production.up.railway.app",
+    "http://localhost:3000"
+  ].includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
   }
   
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
   res.header('Access-Control-Max-Age', '86400');
-  res.status(204).end(); // No content for preflight
+  res.status(204).end();
 });
 
 app.use(express.json());
