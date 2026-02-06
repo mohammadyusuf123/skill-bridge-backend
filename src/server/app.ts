@@ -40,64 +40,53 @@ app.use((req, res, next) => {
 });
 
 // ✅ Cookie interceptor middleware - SIMPLIFIED
-// Replace your cookie interceptor with this FIXED version:
-// app.use((req, res, next) => {
-//   const originalSetHeader = res.setHeader;
-//   let hasIntercepted = false; // Track if we've already intercepted
-  
-//   res.setHeader = function (name: string, value: any): any {
-//     if (name.toLowerCase() === 'set-cookie' && !hasIntercepted) {
-//       console.log('=== SET-COOKIE INTERCEPT (ONCE) ===');
-//       hasIntercepted = true; // Prevent multiple interceptions
-      
-//       let cookies: string[] = [];
-      
-//       // Convert to string array
-//       if (typeof value === 'string') {
-//         cookies = [value];
-//       } else if (Array.isArray(value)) {
-//         cookies = value.map(v => String(v));
-//       } else {
-//         cookies = [String(value)];
-//       }
-      
-//       const modifiedCookies = cookies.map(cookie => {
-//         console.log('Original:', cookie);
-        
-//         // Check if cookie already has correct settings
-//         if (cookie.includes('SameSite=None') && cookie.includes('Domain=.railway.app')) {
-//           console.log('Already correct, skipping modification');
-//           return cookie;
-//         }
-        
-//         // Remove existing flags
-//         let modified = cookie
-//           .replace(/; SameSite=(Lax|Strict|None)/gi, '')
-//           .replace(/; Secure/gi, '')
-//           .replace(/; Domain=[^;]+/gi, '');
-        
-//         // Add required flags
-//         modified = modified + '; SameSite=None; Secure; Domain=.railway.app';
-        
-//         // Clean up
-//         modified = modified.replace(/;;/g, ';');
-//         if (modified.endsWith(';')) {
-//           modified = modified.slice(0, -1);
-//         }
-        
-//         console.log('Modified:', modified);
-//         return modified;
-//       });
-      
-//       return originalSetHeader.call(this, 'Set-Cookie', modifiedCookies);
-//     }
-    
-//     return originalSetHeader.call(this, name, value);
-//   };
-  
-//   next();
-// });
+// ===== ADD THIS MIDDLEWARE =====
+// Place it after your CORS setup but BEFORE the auth routes
+app.use((req, res, next) => {
+  // Store the original 'setHeader' function
+  const originalSetHeader = res.setHeader;
 
+  // Override the 'setHeader' method to intercept cookies
+  res.setHeader = function (name: string, value: string | number | string[]) {
+    // Only process 'Set-Cookie' headers
+    if (name.toLowerCase() === 'set-cookie') {
+      console.log('🔧 INTERCEPTING Set-Cookie Header');
+      
+      // Convert the value to an array of strings
+      const cookies = Array.isArray(value) ? value : [String(value)];
+      
+      const fixedCookies = cookies.map(cookieStr => {
+        console.log('   Original:', cookieStr);
+        
+        // 1. REPLACE 'SameSite=Lax' or 'SameSite=Strict' with 'SameSite=None'
+        // 2. ENSURE 'Secure' is present (required for 'SameSite=None')
+        // 3. ADD 'Domain=.railway.app'
+        let fixed = cookieStr
+          .replace(/; SameSite=(Lax|Strict)/i, '') // Remove old SameSite
+          .replace(/; Secure/i, '')                // Remove old Secure to avoid duplicates
+          .replace(/; Domain=[^;]+/i, '');         // Remove old Domain
+        
+        // Append the correct, required attributes
+        fixed = fixed + '; SameSite=None; Secure; Domain=.railway.app';
+        
+        // Clean up any double semicolons
+        fixed = fixed.replace(/;;/g, ';');
+        
+        console.log('   Fixed:   ', fixed);
+        return fixed;
+      });
+
+      // Call the original function with our modified cookies
+      return originalSetHeader.call(this, 'Set-Cookie', fixedCookies);
+    }
+    
+    // For all other headers, use the original function
+    return originalSetHeader.call(this, name, value);
+  };
+
+  next();
+});
+// ===== END OF MIDDLEWARE =====
 // ✅ Test endpoints (place before auth routes for easy testing)
 app.get('/api/cors-test', (req, res) => {
   res.json({
