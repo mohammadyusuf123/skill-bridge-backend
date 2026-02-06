@@ -3,6 +3,12 @@ import cors from "cors";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "../lib/auth";
 import { TutorRoutes } from "./modules/tutors/tutors.routes";
+import { UserRoutes } from "./modules/user/user.routes";
+import { TutorCategoryRoutes } from "./modules/tutor-category/tutor-category.routes";
+import { ReviewRoutes } from "./modules/reviews/reviews.routes";
+import { DashboardRoutes } from "./modules/dashboard/dashboard.routes";
+import { BookingRoutes } from "./modules/booking/booking.routes";
+import { AvailabilityRoutes } from "./modules/availability/availability.routes";
 
 const app = express();
 
@@ -195,7 +201,18 @@ app.use("/api/auth", toNodeHandler(auth));
 
 // Tutor routes
 app.use('/api/tutors', TutorRoutes);
-
+//user routes
+app.use('/api/user', UserRoutes);
+//tutor-category routes
+app.use('/api/tutor-category', TutorCategoryRoutes);
+//review routes
+app.use('/api/reviews', ReviewRoutes);
+//dashboard routes
+app.use('/api/dashboard', DashboardRoutes);
+//bookings routes
+app.use('/api/bookings', BookingRoutes);
+//availability routes
+app.use('/api/availability', AvailabilityRoutes);
 // Root route
 app.get('/', (req, res) => {
   res.send('Welcome to the Skill Bridge Backend API');

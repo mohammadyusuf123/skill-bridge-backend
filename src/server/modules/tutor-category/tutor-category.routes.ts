@@ -36,5 +36,5 @@ router.put('/:categoryId', authenticate, isAdmin, validate(updateCategoryValidat
 router.delete('/:categoryId', authenticate, isAdmin, CategoryController.deleteCategory);
 router.patch('/:categoryId/toggle-status', authenticate, isAdmin, CategoryController.toggleStatus);
 
-export const CategoryRoutes = router;
+export const TutorCategoryRoutes = router;
 

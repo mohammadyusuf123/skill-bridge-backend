@@ -3,7 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./prisma";
 
 export const auth = betterAuth({
-  baseURL: 'https://skill-bridge-backend-production-27ac.up.railway.app',
+  baseURL: process.env.BETTER_AUTH_URL,
   
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   secret: process.env.BETTER_AUTH_SECRET!,
@@ -32,7 +32,7 @@ export const auth = betterAuth({
 
   // ... rest of your configuration (trustedOrigins, session, user, emailAndPassword)
   trustedOrigins: [
-    "https://skill-bridge-fronted-production.up.railway.app",
+    process.env.APP_URL!,
     "http://localhost:3000",
   ],
   session: { expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24 },
