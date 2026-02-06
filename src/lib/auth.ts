@@ -36,6 +36,16 @@ export const auth = betterAuth({
     "http://localhost:3000",
   ],
   session: { expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24 },
-  user: { additionalFields: { /* your fields */ } },
-  emailAndPassword: { enabled: true },
+  user:{
+         additionalFields: {
+          role: { type: "string", defaultValue: "user",required: false },
+          phone: { type: "string", required: false },
+          status: { type: "string", defaultValue: "active", required: false },
+         }
+    },
+      emailAndPassword: { 
+    enabled: true, 
+    autoSignIn:false,
+    requireEmailVerification: false,
+  },
 });
