@@ -173,26 +173,50 @@ app.get('/api/cookie-debug', (req, res) => {
 });
 // Redirect /session to /get-session
 app.get('/api/auth/session', async (req, res) => {
-  console.log('Redirecting /session to /get-session');
-  console.log('Cookies received:', req.headers.cookie);
-  
   try {
-    // Forward the request to /get-session
-    const session = await auth.api.getSession({
+    console.log('Better-Auth session endpoint called');
+    
+    // Get session from Better-Auth
+    const authSession = await auth.api.getSession({
       headers: req.headers as any,
     });
     
-    res.json({
-      success: true,
-      session,
-      cookiesReceived: req.headers.cookie || 'none'
-    });
+    console.log('Raw auth session:', authSession);
+    
+    // ✅ RETURN THE EXACT FORMAT useSession() EXPECTS
+    if (authSession?.user) {
+      res.json({
+        data: {
+          user: {
+            id: authSession.user.id,
+            email: authSession.user.email,
+            name: authSession.user.name,
+            role: authSession.user.role, // Your custom field
+            phone: authSession.user.phone,
+            status: authSession.user.status,
+            emailVerified: authSession.user.emailVerified,
+            image: authSession.user.image,
+            createdAt: authSession.user.createdAt,
+            updatedAt: authSession.user.updatedAt
+          },
+          // Optionally include the session token if needed
+          expires: authSession.session?.expiresAt,
+          // You can add any other fields your app needs
+        }
+      });
+    } else {
+      // No session - return null data
+      res.json({
+        data: null,
+        error: 'Not authenticated'
+      });
+    }
+    
   } catch (error: any) {
-    console.error('Session error:', error);
-    res.status(401).json({
-      success: false,
-      error: error.message,
-      cookiesReceived: req.headers.cookie || 'none'
+    console.error('Session endpoint error:', error);
+    res.json({
+      data: null,
+      error: error.message
     });
   }
 });
