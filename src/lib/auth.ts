@@ -22,7 +22,6 @@ export const auth = betterAuth({
     sameSite: "none" as const, // Force 'none' for cross-domain
     secure: true,              // Required when sameSite is 'none'
     httpOnly: true,
-    domain: ".railway.app",    // Leading dot for all subdomains
     path: "/",
   },
 
