@@ -6,106 +6,27 @@ import { TutorRoutes } from "./modules/tutors/tutors.routes";
 
 const app = express();
 
-// ✅ Get URLs from environment
-const BACKEND_URL = process.env.BETTER_AUTH_URL || 
-                    "https://skill-bridge-backend-production-27ac.up.railway.app";
-
+// ✅ Configuration
 const FRONTEND_URL = process.env.APP_URL || 
                      "https://skill-bridge-fronted-production.up.railway.app";
 
-// ✅ Create CORS middleware configuration
-const corsOptions = {
-  origin: function (origin: string | undefined, callback: Function) {
-    // Normalize the origin - remove trailing slashes
-    const normalizeOrigin = (url: string | undefined) => {
-      if (!url) return url;
-      return url.replace(/\/$/, ''); // Remove trailing slash
-    };
-    
-    const normalizedOrigin = normalizeOrigin(origin);
-    const allowedOrigins = [
-      FRONTEND_URL.replace(/\/$/, ''),
-      "http://localhost:3000",
-      "https://skill-bridge-fronted-production.up.railway.app"
-    ].map(url => url.replace(/\/$/, '')); // Normalize all allowed origins
-    
-    console.log('CORS Check:', {
-      receivedOrigin: origin,
-      normalizedOrigin,
-      allowedOrigins
-    });
-    
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!normalizedOrigin) {
-      console.log('Allowing: No origin provided');
-      return callback(null, true);
-    }
-    
-    // Check if origin is in allowed list
-    if (allowedOrigins.includes(normalizedOrigin)) {
-      console.log('Allowing origin:', normalizedOrigin);
-      callback(null, true);
-    } else {
-      console.log('Blocking origin:', normalizedOrigin);
-      console.log('Allowed origins:', allowedOrigins);
-      callback(new Error(`Not allowed by CORS. Origin: ${normalizedOrigin}`));
-    }
-  },
+const allowedOrigins = [
+  FRONTEND_URL.replace(/\/$/, ''),
+  "http://localhost:3000",
+  "https://skill-bridge-fronted-production.up.railway.app"
+].map(url => url.replace(/\/$/, ''));
+
+// ✅ SIMPLE CORS configuration - remove complex function
+app.use(cors({
+  origin: allowedOrigins,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: [
-    "Content-Type", 
-    "Authorization", 
-    "X-Requested-With",
-    "Cookie",
-    "Accept"
-  ],
+  allowedHeaders: ["Content-Type", "Authorization", "Cookie", "Accept"],
   exposedHeaders: ["Set-Cookie"],
-  maxAge: 86400, // 24 hours
-};
-
-// ✅ Apply CORS middleware
-app.use(cors(corsOptions));
-
-// ✅ Handle preflight requests for ALL routes
-app.options('/api/:path*', (req, res) => {
-  const origin = req.headers.origin;
-  
-  if (origin && [
-    "https://skill-bridge-fronted-production.up.railway.app",
-    "http://localhost:3000"
-  ].includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-  
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
-  res.header('Access-Control-Max-Age', '86400');
-  res.status(204).end();
-});
+  maxAge: 86400,
+}));
 
 app.use(express.json());
-
-// ✅ Add headers middleware to ensure CORS headers are set for all responses
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  // Set CORS headers for all responses
-  if (origin && [
-    "https://skill-bridge-fronted-production.up.railway.app",
-    "http://localhost:3000"
-  ].some(allowed => origin.replace(/\/$/, '').includes(allowed.replace(/\/$/, '')))) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-  
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie');
-  res.header('Access-Control-Expose-Headers', 'Set-Cookie');
-  
-  next();
-});
 
 // ✅ Debug middleware
 app.use((req, res, next) => {
@@ -115,56 +36,47 @@ app.use((req, res, next) => {
   console.log('Origin:', req.headers.origin);
   console.log('Cookies:', req.headers.cookie);
   console.log('Host:', req.headers.host);
-  console.log('User-Agent:', req.headers['user-agent']);
   next();
 });
 
-// ✅ Cookie interceptor middleware (keep your existing one)
+// ✅ Cookie interceptor middleware - SIMPLIFIED
 app.use((req, res, next) => {
   const originalSetHeader = res.setHeader;
   
-  res.setHeader = function (name: string, value: string | number | string[]): any {
+  res.setHeader = function (name: string, value: any): any {
     if (name.toLowerCase() === 'set-cookie') {
       console.log('=== SET-COOKIE INTERCEPT ===');
       
-      // Convert to array of strings
-      const cookies: string[] = [];
+      let cookies: string[] = [];
       
+      // Convert to string array
       if (typeof value === 'string') {
-        cookies.push(value);
+        cookies = [value];
       } else if (Array.isArray(value)) {
-        value.forEach((v: string | number) => {
-          if (typeof v === 'string') {
-            cookies.push(v);
-          } else if (typeof v === 'number') {
-            cookies.push(v.toString());
-          }
-        });
-      } else if (typeof value === 'number') {
-        cookies.push(value.toString());
+        cookies = value.map(v => String(v));
+      } else {
+        cookies = [String(value)];
       }
       
-      // Modify each cookie
       const modifiedCookies = cookies.map(cookie => {
-        console.log('Original cookie:', cookie);
+        console.log('Original:', cookie);
         
-        // 1. Remove existing SameSite AND Secure flags
+        // Remove SameSite and existing Domain
         let modified = cookie
-          .replace(/; SameSite=Lax/gi, '')
-          .replace(/; SameSite=Strict/gi, '')
-          .replace(/; SameSite=None/gi, '')
-          .replace(/; Secure/gi, ''); // Remove existing Secure
+          .replace(/; SameSite=(Lax|Strict|None)/gi, '')
+          .replace(/; Domain=[^;]+/gi, '')
+          .replace(/; Secure/gi, '');
         
-        // 2. Remove existing Domain if present
-        modified = modified.replace(/; Domain=[^;]+/gi, '');
-        
-        // 3. Add correct settings (ONCE)
+        // Add required attributes
         modified = modified + '; SameSite=None; Secure; Domain=.railway.app';
         
-        // 4. Clean up duplicate semicolons
-        modified = modified.replace(/;;/g, ';').replace(/; $/, '');
+        // Clean up
+        modified = modified.replace(/;;/g, ';');
+        if (modified.endsWith(';')) {
+          modified = modified.slice(0, -1);
+        }
         
-        console.log('Modified cookie:', modified);
+        console.log('Modified:', modified);
         return modified;
       });
       
@@ -177,24 +89,23 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ Create CORS test endpoint
+// ✅ Test endpoints (place before auth routes for easy testing)
 app.get('/api/cors-test', (req, res) => {
   res.json({
     success: true,
-    message: 'CORS test successful',
+    message: 'CORS working',
     origin: req.headers.origin,
-    timestamp: new Date().toISOString()
+    cookies: req.headers.cookie || 'none'
   });
 });
 
-// ✅ Set test cookie endpoint with CORS headers
 app.get('/api/set-test-cookie', (req, res) => {
-  res.cookie('test_cookie', 'backend_cookie_value', {
+  res.cookie('test_cookie', 'value_' + Date.now(), {
     httpOnly: true,
     secure: true,
     sameSite: 'none',
     domain: '.railway.app',
-    maxAge: 24 * 60 * 60 * 1000
+    maxAge: 3600000
   });
   
   res.json({ 
@@ -204,18 +115,29 @@ app.get('/api/set-test-cookie', (req, res) => {
   });
 });
 
-// ✅ Check cookies endpoint
-app.get('/api/check-cookies', (req, res) => {
-  res.json({
-    success: true,
-    cookies: req.headers.cookie || 'No cookies sent',
-    headers: {
-      origin: req.headers.origin,
-      host: req.headers.host,
-      'user-agent': req.headers['user-agent']
-    }
-  });
-});
+// ✅ IMPORTANT: NO app.options('*', ...) line!
+// Express has issues with '*' in options. Handle preflight manually if needed:
+
+// Manual OPTIONS handler for specific routes
+const handleOptions = (req: express.Request, res: express.Response) => {
+  const origin = req.headers.origin;
+  
+  if (origin && allowedOrigins.includes(origin.replace(/\/$/, ''))) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+  res.header('Access-Control-Max-Age', '86400');
+  res.status(204).end();
+};
+
+// Apply to specific routes that need OPTIONS
+// app.options('/api/auth/:path*', handleOptions);
+// app.options('/api/tutors/:path*', handleOptions);
+app.options('/api/cors-test', handleOptions);
+app.options('/api/set-test-cookie', handleOptions);
 
 // Auth routes
 app.use("/api/auth", toNodeHandler(auth));
@@ -227,5 +149,13 @@ app.use('/api/tutors', TutorRoutes);
 app.get('/', (req, res) => {
   res.send('Welcome to the Skill Bridge Backend API');
 });
+
+// 404 handler
+// app.use('*', (req, res) => {
+//   res.status(404).json({
+//     success: false,
+//     error: `Route ${req.originalUrl} not found`
+//   });
+// });
 
 export default app;
