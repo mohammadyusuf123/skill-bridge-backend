@@ -165,6 +165,31 @@ app.get('/api/cookie-debug', (req, res) => {
     message: 'Test cookies set in single header'
   });
 });
+// Redirect /session to /get-session
+app.get('/api/auth/session', async (req, res) => {
+  console.log('Redirecting /session to /get-session');
+  console.log('Cookies received:', req.headers.cookie);
+  
+  try {
+    // Forward the request to /get-session
+    const session = await auth.api.getSession({
+      headers: req.headers as any,
+    });
+    
+    res.json({
+      success: true,
+      session,
+      cookiesReceived: req.headers.cookie || 'none'
+    });
+  } catch (error: any) {
+    console.error('Session error:', error);
+    res.status(401).json({
+      success: false,
+      error: error.message,
+      cookiesReceived: req.headers.cookie || 'none'
+    });
+  }
+});
 // Auth routes
 app.use("/api/auth", toNodeHandler(auth));
 
