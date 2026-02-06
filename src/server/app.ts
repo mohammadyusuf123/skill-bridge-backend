@@ -40,53 +40,43 @@ app.use((req, res, next) => {
 });
 
 // ✅ Cookie interceptor middleware - SIMPLIFIED
-// ===== ADD THIS MIDDLEWARE =====
-// Place it after your CORS setup but BEFORE the auth routes
+// ===== REPLACE YOUR EXISTING INTERCEPTOR WITH THIS =====
 app.use((req, res, next) => {
-  // Store the original 'setHeader' function
   const originalSetHeader = res.setHeader;
 
-  // Override the 'setHeader' method to intercept cookies
   res.setHeader = function (name: string, value: string | number | string[]) {
-    // Only process 'Set-Cookie' headers
     if (name.toLowerCase() === 'set-cookie') {
       console.log('🔧 INTERCEPTING Set-Cookie Header');
       
-      // Convert the value to an array of strings
       const cookies = Array.isArray(value) ? value : [String(value)];
       
       const fixedCookies = cookies.map(cookieStr => {
         console.log('   Original:', cookieStr);
         
-        // 1. REPLACE 'SameSite=Lax' or 'SameSite=Strict' with 'SameSite=None'
-        // 2. ENSURE 'Secure' is present (required for 'SameSite=None')
-        // 3. ADD 'Domain=.railway.app'
+        // 1. CRITICAL: Change SameSite from Lax/Strict to None
+        // 2. DO NOT add any Domain attribute
         let fixed = cookieStr
-          .replace(/; SameSite=(Lax|Strict)/i, '') // Remove old SameSite
-          .replace(/; Secure/i, '')                // Remove old Secure to avoid duplicates
-          .replace(/; Domain=[^;]+/i, '');         // Remove old Domain
+          .replace(/; SameSite=(Lax|Strict)/i, '') // Remove Lax/Strict
+          .replace(/; Secure/i, '')               // Remove Secure to avoid duplicate
+          .replace(/; Domain=[^;]+/i, '');        // Remove ANY existing Domain (IMPORTANT!)
         
-        // Append the correct, required attributes
-        fixed = fixed + '; SameSite=None; Secure; Domain=.railway.app';
+        // Add ONLY the required attributes
+        fixed = fixed + '; SameSite=None; Secure';
         
-        // Clean up any double semicolons
+        // Clean up
         fixed = fixed.replace(/;;/g, ';');
         
         console.log('   Fixed:   ', fixed);
         return fixed;
       });
 
-      // Call the original function with our modified cookies
       return originalSetHeader.call(this, 'Set-Cookie', fixedCookies);
     }
-    
-    // For all other headers, use the original function
     return originalSetHeader.call(this, name, value);
   };
-
   next();
 });
-// ===== END OF MIDDLEWARE =====
+// ===== END OF REPLACEMENT =====
 // ✅ Test endpoints (place before auth routes for easy testing)
 app.get('/api/cors-test', (req, res) => {
   res.json({
