@@ -41,62 +41,62 @@ app.use((req, res, next) => {
 
 // ✅ Cookie interceptor middleware - SIMPLIFIED
 // Replace your cookie interceptor with this FIXED version:
-app.use((req, res, next) => {
-  const originalSetHeader = res.setHeader;
-  let hasIntercepted = false; // Track if we've already intercepted
+// app.use((req, res, next) => {
+//   const originalSetHeader = res.setHeader;
+//   let hasIntercepted = false; // Track if we've already intercepted
   
-  res.setHeader = function (name: string, value: any): any {
-    if (name.toLowerCase() === 'set-cookie' && !hasIntercepted) {
-      console.log('=== SET-COOKIE INTERCEPT (ONCE) ===');
-      hasIntercepted = true; // Prevent multiple interceptions
+//   res.setHeader = function (name: string, value: any): any {
+//     if (name.toLowerCase() === 'set-cookie' && !hasIntercepted) {
+//       console.log('=== SET-COOKIE INTERCEPT (ONCE) ===');
+//       hasIntercepted = true; // Prevent multiple interceptions
       
-      let cookies: string[] = [];
+//       let cookies: string[] = [];
       
-      // Convert to string array
-      if (typeof value === 'string') {
-        cookies = [value];
-      } else if (Array.isArray(value)) {
-        cookies = value.map(v => String(v));
-      } else {
-        cookies = [String(value)];
-      }
+//       // Convert to string array
+//       if (typeof value === 'string') {
+//         cookies = [value];
+//       } else if (Array.isArray(value)) {
+//         cookies = value.map(v => String(v));
+//       } else {
+//         cookies = [String(value)];
+//       }
       
-      const modifiedCookies = cookies.map(cookie => {
-        console.log('Original:', cookie);
+//       const modifiedCookies = cookies.map(cookie => {
+//         console.log('Original:', cookie);
         
-        // Check if cookie already has correct settings
-        if (cookie.includes('SameSite=None') && cookie.includes('Domain=.railway.app')) {
-          console.log('Already correct, skipping modification');
-          return cookie;
-        }
+//         // Check if cookie already has correct settings
+//         if (cookie.includes('SameSite=None') && cookie.includes('Domain=.railway.app')) {
+//           console.log('Already correct, skipping modification');
+//           return cookie;
+//         }
         
-        // Remove existing flags
-        let modified = cookie
-          .replace(/; SameSite=(Lax|Strict|None)/gi, '')
-          .replace(/; Secure/gi, '')
-          .replace(/; Domain=[^;]+/gi, '');
+//         // Remove existing flags
+//         let modified = cookie
+//           .replace(/; SameSite=(Lax|Strict|None)/gi, '')
+//           .replace(/; Secure/gi, '')
+//           .replace(/; Domain=[^;]+/gi, '');
         
-        // Add required flags
-        modified = modified + '; SameSite=None; Secure; Domain=.railway.app';
+//         // Add required flags
+//         modified = modified + '; SameSite=None; Secure; Domain=.railway.app';
         
-        // Clean up
-        modified = modified.replace(/;;/g, ';');
-        if (modified.endsWith(';')) {
-          modified = modified.slice(0, -1);
-        }
+//         // Clean up
+//         modified = modified.replace(/;;/g, ';');
+//         if (modified.endsWith(';')) {
+//           modified = modified.slice(0, -1);
+//         }
         
-        console.log('Modified:', modified);
-        return modified;
-      });
+//         console.log('Modified:', modified);
+//         return modified;
+//       });
       
-      return originalSetHeader.call(this, 'Set-Cookie', modifiedCookies);
-    }
+//       return originalSetHeader.call(this, 'Set-Cookie', modifiedCookies);
+//     }
     
-    return originalSetHeader.call(this, name, value);
-  };
+//     return originalSetHeader.call(this, name, value);
+//   };
   
-  next();
-});
+//   next();
+// });
 
 // ✅ Test endpoints (place before auth routes for easy testing)
 app.get('/api/cors-test', (req, res) => {

@@ -5,23 +5,10 @@ import { prisma } from "./prisma";
 export const auth = betterAuth({
   baseURL: 'https://skill-bridge-backend-production-27ac.up.railway.app',
   
-  database: prismaAdapter(prisma, {
-    provider: "postgresql",
-  }),
-
+  database: prismaAdapter(prisma, { provider: "postgresql" }),
   secret: process.env.BETTER_AUTH_SECRET!,
 
-  trustedOrigins: [
-    "https://skill-bridge-fronted-production.up.railway.app",
-    "http://localhost:3000",
-  ],
-
-  session: {
-    expiresIn: 60 * 60 * 24 * 7,
-    updateAge: 60 * 60 * 24,
-  },
-
-  // ✅ USE THIS COOKIE CONFIGURATION - It should override defaults
+  // 1. CRITICAL: Explicitly define ALL cookie names
   cookie: {
     name: {
       sessionToken: "__Secure-better-auth.session_token",
@@ -31,28 +18,25 @@ export const auth = betterAuth({
       nonce: "__Secure-better-auth.nonce",
       pkceCodeVerifier: "__Secure-better-auth.pkce.code_verifier"
     },
-    sameSite: "none", // Force none
-    secure: true,
+    // 2. CRITICAL: Set cross-site attributes
+    sameSite: "none" as const, // Force 'none' for cross-domain
+    secure: true,              // Required when sameSite is 'none'
     httpOnly: true,
-    domain: ".railway.app", // Set domain
+    domain: ".railway.app",    // Leading dot for all subdomains
     path: "/",
   },
 
+  // 3. Ensure advanced settings align
   advanced: {
     useSecureCookies: true,
   },
 
-  user: {
-    additionalFields: {
-      phone: { type: "string", required: false },
-      role: { type: "string", required: true },
-      status: { type: "string", required: false },
-    },
-  },
-
-  emailAndPassword: {
-    enabled: true,
-    autoSignIn: true,
-    requireEmailVerification: false,
-  },
+  // ... rest of your configuration (trustedOrigins, session, user, emailAndPassword)
+  trustedOrigins: [
+    "https://skill-bridge-fronted-production.up.railway.app",
+    "http://localhost:3000",
+  ],
+  session: { expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24 },
+  user: { additionalFields: { /* your fields */ } },
+  emailAndPassword: { enabled: true },
 });
