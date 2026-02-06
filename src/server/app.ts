@@ -13,15 +13,19 @@ import { AvailabilityRoutes } from "./modules/availability/availability.routes";
 const app = express();
 
 // ✅ Configuration
-const FRONTEND_URL = process.env.APP_URL || 
-                     "https://skill-bridge-fronted-production.up.railway.app";
+// const FRONTEND_URL = process.env.APP_URL || 
+//                      "https://skill-bridge-fronted-production.up.railway.app";
 
+// const allowedOrigins = [
+//   FRONTEND_URL.replace(/\/$/, ''),
+//   "http://localhost:3000",
+//   "https://skill-bridge-fronted-production.up.railway.app"
+// ].map(url => url.replace(/\/$/, ''));
+// Define allowedOrigins BEFORE using it
 const allowedOrigins = [
-  FRONTEND_URL.replace(/\/$/, ''),
-  "http://localhost:3000",
-  "https://skill-bridge-fronted-production.up.railway.app"
-].map(url => url.replace(/\/$/, ''));
-
+  'https://skill-bridge-fronted-production.up.railway.app',
+  'http://localhost:3000'
+];
 // Add CORS middleware with logging
 app.use((req, res, next) => {
   console.log('=== CORS DEBUG ===');
