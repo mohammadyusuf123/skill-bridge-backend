@@ -40,12 +40,15 @@ app.use((req, res, next) => {
 });
 
 // ✅ Cookie interceptor middleware - SIMPLIFIED
+// Replace your cookie interceptor with this FIXED version:
 app.use((req, res, next) => {
   const originalSetHeader = res.setHeader;
+  let hasIntercepted = false; // Track if we've already intercepted
   
   res.setHeader = function (name: string, value: any): any {
-    if (name.toLowerCase() === 'set-cookie') {
-      console.log('=== SET-COOKIE INTERCEPT ===');
+    if (name.toLowerCase() === 'set-cookie' && !hasIntercepted) {
+      console.log('=== SET-COOKIE INTERCEPT (ONCE) ===');
+      hasIntercepted = true; // Prevent multiple interceptions
       
       let cookies: string[] = [];
       
@@ -61,19 +64,23 @@ app.use((req, res, next) => {
       const modifiedCookies = cookies.map(cookie => {
         console.log('Original:', cookie);
         
-        // REMOVE ALL existing SameSite, Secure, and Domain flags
+        // Check if cookie already has correct settings
+        if (cookie.includes('SameSite=None') && cookie.includes('Domain=.railway.app')) {
+          console.log('Already correct, skipping modification');
+          return cookie;
+        }
+        
+        // Remove existing flags
         let modified = cookie
           .replace(/; SameSite=(Lax|Strict|None)/gi, '')
-          .replace(/; Secure/gi, '') // Remove Secure
-          .replace(/; Domain=[^;]+/gi, ''); // Remove Domain
+          .replace(/; Secure/gi, '')
+          .replace(/; Domain=[^;]+/gi, '');
         
-        // Add the CORRECT flags (only once each)
+        // Add required flags
         modified = modified + '; SameSite=None; Secure; Domain=.railway.app';
         
-        // Clean up any duplicate semicolons
+        // Clean up
         modified = modified.replace(/;;/g, ';');
-        
-        // Remove trailing semicolon if present
         if (modified.endsWith(';')) {
           modified = modified.slice(0, -1);
         }
@@ -141,36 +148,32 @@ const handleOptions = (req: express.Request, res: express.Response) => {
 app.options('/api/cors-test', handleOptions);
 app.options('/api/set-test-cookie', handleOptions);
 // Add to app.ts before auth routes
+
+app.get('/api/cookie-check', (req, res) => {
+  res.json({
+    success: true,
+    cookiesReceived: req.headers.cookie || 'none',
+    cookieCount: req.headers.cookie ? req.headers.cookie.split(';').length : 0
+  });
+});
+// Update your debug endpoint to avoid multiple cookie settings:
 app.get('/api/cookie-debug', (req, res) => {
   console.log('=== COOKIE DEBUG ENDPOINT ===');
   console.log('Request cookies:', req.headers.cookie);
   console.log('Request origin:', req.headers.origin);
   console.log('Request host:', req.headers.host);
   
-  // Set multiple test cookies with different configurations
   const now = Date.now();
   
-  // Cookie 1: Manual set-cookie header
-  res.setHeader('Set-Cookie', [
-    `debug_cookie_manual=${now}_1; HttpOnly; Secure; SameSite=None; Domain=.railway.app; Path=/; Max-Age=3600`
-  ]);
+  // Set cookies ONCE using a single method
+  const cookiesToSet = [
+    `debug_cookie_manual=${now}_1; HttpOnly; Secure; SameSite=None; Domain=.railway.app; Path=/; Max-Age=3600`,
+    `debug_cookie_res=${now}_2; HttpOnly; Secure; SameSite=None; Domain=.railway.app; Path=/; Max-Age=3600`,
+    `debug_cookie_auth=${now}_3; HttpOnly; Secure; SameSite=None; Domain=.railway.app; Path=/; Max-Age=3600`
+  ];
   
-  // Cookie 2: Using res.cookie()
-  res.cookie('debug_cookie_res', `${now}_2`, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none' as const,
-    domain: '.railway.app',
-    maxAge: 3600000
-  });
-  
-  // Cookie 3: What Better-Auth normally sets (will be intercepted)
-  res.cookie('debug_cookie_auth', `${now}_3`, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'lax' as const,
-    maxAge: 3600000
-  });
+  // Set all cookies at once
+  res.setHeader('Set-Cookie', cookiesToSet);
   
   res.json({
     success: true,
@@ -180,15 +183,7 @@ app.get('/api/cookie-debug', (req, res) => {
       host: req.headers.host,
       userAgent: req.headers['user-agent']
     },
-    message: 'Three test cookies set. Check response headers.'
-  });
-});
-
-app.get('/api/cookie-check', (req, res) => {
-  res.json({
-    success: true,
-    cookiesReceived: req.headers.cookie || 'none',
-    cookieCount: req.headers.cookie ? req.headers.cookie.split(';').length : 0
+    message: 'Test cookies set in single header'
   });
 });
 // Auth routes
