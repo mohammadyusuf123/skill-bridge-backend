@@ -252,7 +252,7 @@ app.use("/api/auth", toNodeHandler(auth));
 // Tutor routes
 app.use('/api/tutors', TutorRoutes);
 //user routes
-app.use('/api/user', UserRoutes);
+app.use('/api/users', UserRoutes);
 //tutor-category routes
 app.use('/api/tutor-category', TutorCategoryRoutes);
 //review routes
