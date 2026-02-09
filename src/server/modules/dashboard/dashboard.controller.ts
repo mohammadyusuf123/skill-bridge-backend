@@ -31,6 +31,7 @@ export class DashboardController {
    * Get tutor dashboard
    */
   async getTutorDashboard(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    console.log('getTutorDashboard called with user:', req.user);
     try {
       if (!req.user) {
         res.status(401).json(errorResponse('Not authenticated'));

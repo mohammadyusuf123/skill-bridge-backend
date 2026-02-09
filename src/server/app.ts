@@ -61,15 +61,15 @@ app.use(cors({
 app.use(express.json());
 
 // ✅ Debug middleware
-app.use((req, res, next) => {
-  console.log('=== REQUEST ===');
-  console.log('Method:', req.method);
-  console.log('URL:', req.url);
-  console.log('Origin:', req.headers.origin);
-  console.log('Cookies:', req.headers.cookie);
-  console.log('Host:', req.headers.host);
-  next();
-});
+// app.use((req, res, next) => {
+//   console.log('=== REQUEST ===');
+//   console.log('Method:', req.method);
+//   console.log('URL:', req.url);
+//   console.log('Origin:', req.headers.origin);
+//   console.log('Cookies:', req.headers.cookie);
+//   console.log('Host:', req.headers.host);
+//   next();
+// });
 
 // ✅ Cookie interceptor middleware - SIMPLIFIED
 // ===== REPLACE YOUR EXISTING INTERCEPTOR WITH THIS =====
