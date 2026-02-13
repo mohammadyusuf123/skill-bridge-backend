@@ -161,12 +161,23 @@ async getAllBookings(req: AuthRequest, res: Response, next: NextFunction): Promi
       console.log("Booking from controller",booking);
       res.json(successResponse(booking, 'Booking marked as complete'));
     } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json(errorResponse(error.message));
-      } else {
-        next(error);
-      }
+  if (error instanceof Error) {
+    if (error.message.includes("not found")) {
+      res.status(404).json(errorResponse(error.message));
+      return;
     }
+
+    if (error.message.includes("authorized")) {
+      res.status(403).json(errorResponse(error.message));
+      return;
+    }
+
+    res.status(400).json(errorResponse(error.message));
+  } else {
+    next(error);
+  }
+}
+
   }
 
   /**
