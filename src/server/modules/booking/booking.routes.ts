@@ -28,6 +28,7 @@ const cancelBookingValidation = [
 
 // Protected routes
 router.post('/', authenticate, validate(createBookingValidation), BookingController.createBooking);
+router.get('/all', authenticate, BookingController.getAllBookings);
 router.get('/my-bookings', authenticate, BookingController.getMyBookings);
 router.get('/stats', authenticate, BookingController.getBookingStats);
 router.get('/:bookingId', authenticate, BookingController.getBookingById);

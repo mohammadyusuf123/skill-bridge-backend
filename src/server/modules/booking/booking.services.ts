@@ -72,7 +72,39 @@ export class BookingService {
 
     return booking;
   }
+// get all bookings
+async getAllBookings() {
+    const bookings = await prisma.booking.findMany({
+      include: {
+        student: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+        tutor: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+        tutorProfile: {
+          select: {
+            id: true,
+            title: true,
+            hourlyRate: true,
+          },
+        },
+        review: true,
+      },
+    });
 
+    return bookings;
+}
   /**
    * Get booking by ID
    */

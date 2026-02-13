@@ -24,7 +24,15 @@ export class BookingController {
       }
     }
   }
-
+//get all bookings
+async getAllBookings(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const bookings = await BookingService.getAllBookings();
+    res.json(successResponse(bookings));
+  } catch (error) {
+    next(error);
+  }
+}
   /**
    * Get booking by ID
    */
