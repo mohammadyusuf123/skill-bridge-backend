@@ -317,7 +317,6 @@ async markAsComplete(
     const booking = await tx.booking.findUnique({
       where: { id: bookingId },
     });
-     console.log("Finding booking",booking);
     if (!booking) {
       throw new Error('Booking not found');
     }
@@ -355,7 +354,7 @@ async markAsComplete(
         },
       },
     });
-
+  console.log("Updated booking",updated)
     // 2️⃣ Update tutor stats (exactly once)
     await tx.tutorProfile.update({
       where: { id: booking.tutorProfileId },
