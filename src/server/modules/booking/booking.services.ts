@@ -330,22 +330,43 @@ async markAsComplete(
       throw new Error('Can only complete confirmed bookings');
     }
 
+    // ✅ Parse the session end datetime properly
+    const [endHour, endMinute] = booking.endTime.split(':').map(Number);
+    
+    // Get the date components from sessionDate
     const sessionDate = new Date(booking.sessionDate);
-const year = sessionDate.getFullYear();
-const month = sessionDate.getMonth();
-const day = sessionDate.getDate();
+    const year = sessionDate.getUTCFullYear();
+    const month = sessionDate.getUTCMonth();
+    const day = sessionDate.getUTCDate();
+    
+    // Create session end datetime in UTC
+    const sessionEndDateTime = new Date(Date.UTC(year, month, day, endHour, endMinute, 0, 0));
+    
+    // Get current time
+    const now = new Date();
+    
+    // ✅ Add 15-minute grace period BEFORE session ends
+    // This allows marking complete up to 15 min before end time
+    const graceMinutes = 15;
+    const sessionEndWithGrace = new Date(sessionEndDateTime.getTime() - (graceMinutes * 60 * 1000));
 
-const [endHour, endMinute] = booking.endTime.split(':').map(Number);
-const sessionEndDateTime = new Date(year, month, day, endHour, endMinute, 0, 0);
+    console.log('=== DEBUGGING DATETIME ===');
+    console.log('Session date from DB:', booking.sessionDate);
+    console.log('Session end time:', booking.endTime);
+    console.log('Calculated end datetime (UTC):', sessionEndDateTime.toISOString());
+    console.log('End with grace period (UTC):', sessionEndWithGrace.toISOString());
+    console.log('Current datetime (UTC):', now.toISOString());
+    console.log('Time until end:', (sessionEndDateTime.getTime() - now.getTime()) / 1000 / 60, 'minutes');
+    console.log('Can mark complete?:', now >= sessionEndWithGrace);
+    console.log('========================');
 
-if (sessionEndDateTime > new Date()) {
-  throw new Error('Cannot mark booking as complete before session ends');
-}
-console.log('Session date from DB:', booking.sessionDate);
-console.log('Session end time:', booking.endTime);
-console.log('Calculated end datetime:', sessionEndDateTime);
-console.log('Current datetime:', new Date());
-console.log('Is in future?:', sessionEndDateTime > new Date());
+    if (now < sessionEndWithGrace) {
+      const minutesUntil = Math.ceil((sessionEndWithGrace.getTime() - now.getTime()) / 1000 / 60);
+      throw new Error(
+        `Cannot mark booking as complete yet. Session ends at ${booking.endTime}. Please wait ${minutesUntil} more minute(s).`
+      );
+    }
+
     // 1️⃣ Update booking
     const updated = await tx.booking.update({
       where: { id: bookingId },
