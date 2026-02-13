@@ -354,15 +354,16 @@ async markAsComplete(
         },
       },
     });
-  console.log("Updated booking",updated)
+
     // 2️⃣ Update tutor stats (exactly once)
-    await tx.tutorProfile.update({
+   const updatedTutor = await tx.tutorProfile.update({
       where: { id: booking.tutorProfileId },
       data: {
         totalSessions: { increment: 1 },
       },
     });
-
+console.log("Stats incremented",updatedTutor);
+console.log("updated",updated);
     return updated;
   });
 }
