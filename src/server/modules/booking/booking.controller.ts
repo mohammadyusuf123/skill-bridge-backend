@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../../../types';
 import { errorResponse, successResponse } from '../../../utils/helper';
 import  BookingService  from './booking.services';
+import { ApiError } from '../../../utils/apiError';
 
 export class BookingController {
   /**
@@ -147,38 +148,47 @@ async getAllBookings(req: AuthRequest, res: Response, next: NextFunction): Promi
   /**
    * Mark booking as complete (Tutor only)
    */
-  async markAsComplete(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-
+   async markAsComplete(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
+      // 1️⃣ Check auth
       if (!req.user) {
-        res.status(401).json(errorResponse('Not authenticated'));
+        throw new ApiError(401, "Not authenticated");
+      }
+
+      // 2️⃣ Validate params
+      const { bookingId } = req.params;
+      if (!bookingId) {
+        throw new ApiError(400, "Booking ID is required");
+      }
+
+      const { tutorNotes } = req.body;
+
+      // 3️⃣ Call service
+      const booking = await BookingService.markAsComplete(
+        bookingId as string,
+        req.user.id,
+        tutorNotes
+      );
+
+      res.status(200).json(
+        successResponse(booking, "Booking marked as complete")
+      );
+    } catch (error) {
+      // 4️⃣ Handle custom errors
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json(errorResponse(error.message));
         return;
       }
 
-      const { bookingId } = req.params;
-      const { tutorNotes } = req.body;
-      const booking = await BookingService.markAsComplete(bookingId as string, req.user.id, tutorNotes);
-      console.log("Booking from controller",booking);
-      res.json(successResponse(booking, 'Booking marked as complete'));
-    } catch (error) {
-  if (error instanceof Error) {
-    if (error.message.includes("not found")) {
-      res.status(404).json(errorResponse(error.message));
-      return;
+      // 5️⃣ Unknown errors → pass to global handler
+      next(error);
     }
-
-    if (error.message.includes("authorized")) {
-      res.status(403).json(errorResponse(error.message));
-      return;
-    }
-
-    res.status(400).json(errorResponse(error.message));
-  } else {
-    next(error);
   }
-}
 
-  }
 
   /**
    * Get booking statistics

@@ -1,6 +1,7 @@
-import { Prisma, UserRole } from '../../../../generated/prisma/client';
+import { BookingStatus, Prisma, UserRole } from '../../../../generated/prisma/client';
 import { prisma } from '../../../lib/prisma';
 import { BookingFilters, CreateBookingDto, UpdateBookingDto } from '../../../types';
+import { ApiError } from '../../../utils/apiError';
 import { calculateDuration } from '../../../utils/helper';
 
 
@@ -309,64 +310,73 @@ async getMyBookings(userId: string, userRole: UserRole) {
    * Mark booking as complete (Tutor only)
    */
 async markAsComplete(
-  bookingId: string,
-  tutorId: string,
-  tutorNotes?: string
-) {
-  return prisma.$transaction(async (tx) => {
-    const booking = await tx.booking.findUnique({
-      where: { id: bookingId },
-    });
-    if (!booking) {
-      throw new Error('Booking not found');
-    }
+    bookingId: string,
+    tutorId: string,
+    tutorNotes?: string
+  ) {
+    return prisma.$transaction(async (tx) => {
+      // 1️⃣ Find booking
+      const booking = await tx.booking.findUnique({
+        where: { id: bookingId },
+      });
 
-    if (booking.tutorId !== tutorId) {
-      throw new Error('Not authorized to complete this booking');
-    }
+      if (!booking) {
+        throw new ApiError(404, "Booking not found");
+      }
 
-    if (booking.status !== 'CONFIRMED') {
-      throw new Error('Can only complete confirmed bookings');
-    }
+      // 2️⃣ Authorization check
+      if (booking.tutorId !== tutorId) {
+        throw new ApiError(403, "Not authorized to complete this booking");
+      }
 
-    // Combine session date + end time
-    const [endHour, endMinute] = booking.endTime.split(':').map(Number);
-    const sessionEndDateTime = new Date(booking.sessionDate);
-    sessionEndDateTime.setHours(endHour, endMinute, 0, 0);
+      // 3️⃣ Status validation
+      if (booking.status !== BookingStatus.CONFIRMED) {
+        throw new ApiError(
+          400,
+          "Only confirmed bookings can be completed"
+        );
+      }
 
-    if (sessionEndDateTime > new Date()) {
-      throw new Error('Cannot mark booking as complete before session ends');
-    }
+      // 4️⃣ Check session end time
+      const [endHour, endMinute] = booking.endTime.split(":").map(Number);
+      const sessionEndDateTime = new Date(booking.sessionDate);
+      sessionEndDateTime.setHours(endHour, endMinute, 0, 0);
 
-    // 1️⃣ Update booking
-    const updated = await tx.booking.update({
-      where: { id: bookingId },
-      data: {
-        status: 'COMPLETED',
-        tutorNotes: tutorNotes ?? 'Marked as completed by tutor.',
-      },
-      include: {
-        student: {
-          select: { id: true, name: true, email: true },
+      if (sessionEndDateTime > new Date()) {
+        throw new ApiError(
+          400,
+          "Cannot mark booking as complete before session ends"
+        );
+      }
+
+      // 5️⃣ Update booking
+      const updatedBooking = await tx.booking.update({
+        where: { id: bookingId },
+        data: {
+          status: BookingStatus.COMPLETED,
+          tutorNotes: tutorNotes ?? "Marked as completed by tutor",
         },
-        tutor: {
-          select: { id: true, name: true, email: true },
+        include: {
+          student: {
+            select: { id: true, name: true, email: true },
+          },
+          tutor: {
+            select: { id: true, name: true, email: true },
+          },
         },
-      },
-    });
+      });
 
-    // 2️⃣ Update tutor stats (exactly once)
-   const updatedTutor = await tx.tutorProfile.update({
-      where: { id: booking.tutorProfileId },
-      data: {
-        totalSessions: { increment: 1 },
-      },
+      // 6️⃣ Update tutor stats
+      await tx.tutorProfile.update({
+        where: { id: booking.tutorProfileId },
+        data: {
+          totalSessions: { increment: 1 },
+        },
+      });
+
+      return updatedBooking;
     });
-console.log("Stats incremented",updatedTutor);
-console.log("updated",updated);
-    return updated;
-  });
-}
+  }
 
 
   /**
