@@ -1,7 +1,6 @@
-import { BookingStatus, Prisma, UserRole } from '../../../../generated/prisma/client';
+import { Prisma, UserRole } from '../../../../generated/prisma/client';
 import { prisma } from '../../../lib/prisma';
 import { BookingFilters, CreateBookingDto, UpdateBookingDto } from '../../../types';
-import { ApiError } from '../../../utils/apiError';
 import { calculateDuration } from '../../../utils/helper';
 
 
@@ -310,73 +309,71 @@ async getMyBookings(userId: string, userRole: UserRole) {
    * Mark booking as complete (Tutor only)
    */
 async markAsComplete(
-    bookingId: string,
-    tutorId: string,
-    tutorNotes?: string
-  ) {
-    return prisma.$transaction(async (tx) => {
-      // 1️⃣ Find booking
-      const booking = await tx.booking.findUnique({
-        where: { id: bookingId },
-      });
-
-      if (!booking) {
-        throw new ApiError(404, "Booking not found");
-      }
-
-      // 2️⃣ Authorization check
-      if (booking.tutorId !== tutorId) {
-        throw new ApiError(403, "Not authorized to complete this booking");
-      }
-
-      // 3️⃣ Status validation
-      if (booking.status !== BookingStatus.CONFIRMED) {
-        throw new ApiError(
-          400,
-          "Only confirmed bookings can be completed"
-        );
-      }
-
-      // 4️⃣ Check session end time
-      const [endHour, endMinute] = booking.endTime.split(":").map(Number);
-      const sessionEndDateTime = new Date(booking.sessionDate);
-      sessionEndDateTime.setHours(endHour, endMinute, 0, 0);
-
-      if (sessionEndDateTime > new Date()) {
-        throw new ApiError(
-          400,
-          "Cannot mark booking as complete before session ends"
-        );
-      }
-
-      // 5️⃣ Update booking
-      const updatedBooking = await tx.booking.update({
-        where: { id: bookingId },
-        data: {
-          status: BookingStatus.COMPLETED,
-          tutorNotes: tutorNotes ?? "Marked as completed by tutor",
-        },
-        include: {
-          student: {
-            select: { id: true, name: true, email: true },
-          },
-          tutor: {
-            select: { id: true, name: true, email: true },
-          },
-        },
-      });
-
-      // 6️⃣ Update tutor stats
-      await tx.tutorProfile.update({
-        where: { id: booking.tutorProfileId },
-        data: {
-          totalSessions: { increment: 1 },
-        },
-      });
-
-      return updatedBooking;
+  bookingId: string,
+  tutorId: string,
+  tutorNotes?: string
+) {
+  return prisma.$transaction(async (tx) => {
+    const booking = await tx.booking.findUnique({
+      where: { id: bookingId },
     });
-  }
+
+    if (!booking) {
+      throw new Error('Booking not found');
+    }
+
+    if (booking.tutorId !== tutorId) {
+      throw new Error('Not authorized to complete this booking');
+    }
+
+    if (booking.status !== 'CONFIRMED') {
+      throw new Error('Can only complete confirmed bookings');
+    }
+
+    const sessionDate = new Date(booking.sessionDate);
+const year = sessionDate.getFullYear();
+const month = sessionDate.getMonth();
+const day = sessionDate.getDate();
+
+const [endHour, endMinute] = booking.endTime.split(':').map(Number);
+const sessionEndDateTime = new Date(year, month, day, endHour, endMinute, 0, 0);
+
+if (sessionEndDateTime > new Date()) {
+  throw new Error('Cannot mark booking as complete before session ends');
+}
+console.log('Session date from DB:', booking.sessionDate);
+console.log('Session end time:', booking.endTime);
+console.log('Calculated end datetime:', sessionEndDateTime);
+console.log('Current datetime:', new Date());
+console.log('Is in future?:', sessionEndDateTime > new Date());
+    // 1️⃣ Update booking
+    const updated = await tx.booking.update({
+      where: { id: bookingId },
+      data: {
+        status: 'COMPLETED',
+        tutorNotes: tutorNotes ?? 'Marked as completed by tutor.',
+      },
+      include: {
+        student: {
+          select: { id: true, name: true, email: true },
+        },
+        tutor: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    // 2️⃣ Update tutor stats (exactly once)
+    await tx.tutorProfile.update({
+      where: { id: booking.tutorProfileId },
+      data: {
+        totalSessions: { increment: 1 },
+      },
+    });
+
+    return updated;
+  });
+}
 
 
   /**

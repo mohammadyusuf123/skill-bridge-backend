@@ -2,7 +2,6 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../../../types';
 import { errorResponse, successResponse } from '../../../utils/helper';
 import  BookingService  from './booking.services';
-import { ApiError } from '../../../utils/apiError';
 
 export class BookingController {
   /**
@@ -26,14 +25,14 @@ export class BookingController {
     }
   }
 //get all bookings
-async getAllBookings(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-  try {
-    const bookings = await BookingService.getAllBookings();
-    res.json(successResponse(bookings));
-  } catch (error) {
-    next(error);
+  async getAllBookings(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const bookings = await BookingService.getAllBookings();
+      res.json(successResponse(bookings));
+    } catch (error) {
+      next(error);
+    }
   }
-}
   /**
    * Get booking by ID
    */
@@ -148,35 +147,27 @@ async getAllBookings(req: AuthRequest, res: Response, next: NextFunction): Promi
   /**
    * Mark booking as complete (Tutor only)
    */
-async markAsComplete(req: AuthRequest, res: Response, next: NextFunction) {
-  try {
-    console.log('REQ USER:', req.user);
-    console.log('REQ PARAMS:', req.params);
-    console.log('REQ BODY:', req.body);
+  async markAsComplete(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
 
-    if (!req.user) throw new Error('Not authenticated');
+    try {
+      if (!req.user) {
+        res.status(401).json(errorResponse('Not authenticated'));
+        return;
+      }
 
-    const { bookingId } = req.params;
-    const { tutorNotes } = req.body;
+      const { bookingId } = req.params;
+      const { tutorNotes } = req.body;
 
-    const booking = await BookingService.markAsComplete(
-      bookingId as string,
-      req.user.id,
-      tutorNotes
-    );
-
-    res.json(successResponse(booking, 'Booking marked as complete'));
-  } catch (error) {
-    console.error('MARK COMPLETE ERROR:', error);
-    if (error instanceof Error) {
-      res.status(400).json(errorResponse(error.message));
-    } else {
-      next(error);
+      const booking = await BookingService.markAsComplete(bookingId as string, req.user.id, tutorNotes);
+      res.json(successResponse(booking, 'Booking marked as complete'));
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json(errorResponse(error.message));
+      } else {
+        next(error);
+      }
     }
   }
-}
-
-
 
   /**
    * Get booking statistics

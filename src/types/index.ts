@@ -165,3 +165,11 @@ export interface CreateReviewInput {
   rating: number;
   comment?: string;
 }
+
+ export interface MarkCompleteOptions {
+  bookingId: string;
+  tutorId: string;
+  tutorNotes?: string;
+  force?: boolean;        // allow manual override
+  graceMinutes?: number;  // default grace period after session end
+}
