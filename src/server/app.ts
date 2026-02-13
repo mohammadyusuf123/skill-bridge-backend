@@ -27,13 +27,13 @@ const allowedOrigins = [
   'http://localhost:3000'
 ];
 // Add CORS middleware with logging
-app.use((req, res, next) => {
-  console.log('=== CORS DEBUG ===');
-  console.log('Request Origin:', req.headers.origin || 'NO ORIGIN');
-  console.log('Request Cookies:', req.headers.cookie || 'NO COOKIES');
-  console.log('Request Path:', req.path);
-  next();
-});
+// app.use((req, res, next) => {
+//   console.log('=== CORS DEBUG ===');
+//   console.log('Request Origin:', req.headers.origin || 'NO ORIGIN');
+//   console.log('Request Cookies:', req.headers.cookie || 'NO COOKIES');
+//   console.log('Request Path:', req.path);
+//   next();
+// });
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -254,7 +254,7 @@ app.use('/api/tutors', TutorRoutes);
 //user routes
 app.use('/api/users', UserRoutes);
 //tutor-category routes
-app.use('/api/tutor-category', TutorCategoryRoutes);
+app.use('/api/tutor-categories', TutorCategoryRoutes);
 //review routes
 app.use('/api/reviews', ReviewRoutes);
 //dashboard routes
