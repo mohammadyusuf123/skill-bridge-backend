@@ -317,7 +317,7 @@ async markAsComplete(
     const booking = await tx.booking.findUnique({
       where: { id: bookingId },
     });
-
+     console.log(booking);
     if (!booking) {
       throw new Error('Booking not found');
     }
