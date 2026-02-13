@@ -2,7 +2,8 @@ import { Prisma, UserRole } from '../../../../generated/prisma/client';
 import { prisma } from '../../../lib/prisma';
 import { BookingFilters, CreateBookingDto, UpdateBookingDto } from '../../../types';
 import { calculateDuration } from '../../../utils/helper';
-
+import { formatInTimeZone, toDate } from 'date-fns-tz';
+import { parseISO } from 'date-fns';
 
 export class BookingService {
   /**
@@ -330,46 +331,38 @@ async markAsComplete(
       throw new Error('Can only complete confirmed bookings');
     }
 
-    // ✅ Parse session end time
-    const [endHour, endMinute] = booking.endTime.split(':').map(Number);
+    // ✅ User's timezone (store this with booking or user profile)
+    const userTimezone = 'Asia/Dhaka';
     
-    // ✅ Assuming times are stored in LOCAL timezone (e.g., Asia/Dhaka = UTC+6)
-    // Convert sessionDate to local date string
-    const sessionDate = new Date(booking.sessionDate);
+    // Combine date and time in user's timezone
+    const sessionDateStr = booking.sessionDate.toISOString().split('T')[0];
+    const dateTimeStr = `${sessionDateStr}T${booking.endTime}:00`;
     
-    // Get local date components (this uses server's timezone)
-    const year = sessionDate.getFullYear();
-    const month = sessionDate.getMonth();
-    const day = sessionDate.getDate();
+    // Parse as if it's in user's timezone, get UTC
+    const sessionEndDateTimeUTC = toDate(dateTimeStr, { timeZone: userTimezone });
     
-    // Create session end datetime in LOCAL timezone
-    const sessionEndDateTime = new Date(year, month, day, endHour, endMinute, 0, 0);
-    
-    // Get current time in LOCAL timezone
     const now = new Date();
-    
-    // ✅ Add grace period: can mark complete 15 min BEFORE session ends
     const graceMinutes = 15;
-    const sessionEndWithGrace = new Date(sessionEndDateTime.getTime() - (graceMinutes * 60 * 1000));
+    const sessionEndWithGrace = new Date(
+      sessionEndDateTimeUTC.getTime() - (graceMinutes * 60 * 1000)
+    );
 
     console.log('=== DEBUGGING DATETIME ===');
-    console.log('Session date from DB:', booking.sessionDate);
-    console.log('Session end time:', booking.endTime);
-    console.log('Calculated end datetime (LOCAL):', sessionEndDateTime.toString());
-    console.log('End with grace period (LOCAL):', sessionEndWithGrace.toString());
-    console.log('Current datetime (LOCAL):', now.toString());
-    console.log('Time until end:', Math.round((sessionEndDateTime.getTime() - now.getTime()) / 1000 / 60), 'minutes');
-    console.log('Can mark complete?:', now >= sessionEndWithGrace);
+    console.log('User timezone:', userTimezone);
+    console.log('Session end (user TZ):', formatInTimeZone(sessionEndDateTimeUTC, userTimezone, 'yyyy-MM-dd HH:mm:ss zzz'));
+    console.log('Session end (UTC):', sessionEndDateTimeUTC.toISOString());
+    console.log('Current (user TZ):', formatInTimeZone(now, userTimezone, 'yyyy-MM-dd HH:mm:ss zzz'));
+    console.log('Current (UTC):', now.toISOString());
+    console.log('Can complete?:', now >= sessionEndWithGrace);
     console.log('========================');
 
     if (now < sessionEndWithGrace) {
       const minutesUntil = Math.ceil((sessionEndWithGrace.getTime() - now.getTime()) / 1000 / 60);
       throw new Error(
-        `Cannot mark booking as complete yet. Session ends at ${booking.endTime}. Please wait ${minutesUntil} more minute(s).`
+        `Cannot mark booking as complete yet. Session ends at ${booking.endTime} Bangladesh time. Wait ${minutesUntil} more minute(s).`
       );
     }
 
-    // 1️⃣ Update booking
     const updated = await tx.booking.update({
       where: { id: bookingId },
       data: {
@@ -377,27 +370,19 @@ async markAsComplete(
         tutorNotes: tutorNotes ?? 'Marked as completed by tutor.',
       },
       include: {
-        student: {
-          select: { id: true, name: true, email: true },
-        },
-        tutor: {
-          select: { id: true, name: true, email: true },
-        },
+        student: { select: { id: true, name: true, email: true } },
+        tutor: { select: { id: true, name: true, email: true } },
       },
     });
 
-    // 2️⃣ Update tutor stats (exactly once)
     await tx.tutorProfile.update({
       where: { id: booking.tutorProfileId },
-      data: {
-        totalSessions: { increment: 1 },
-      },
+      data: { totalSessions: { increment: 1 } },
     });
 
     return updated;
   });
 }
-
 
   /**
    * Get booking statistics

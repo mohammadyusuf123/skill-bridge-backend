@@ -2,7 +2,6 @@
   "name": "skill-bridge-backend",
   "version": "1.0.0",
   "description": "",
-
   "main": "api/index.js",
   "scripts": {
     "dev": "npx tsx watch src/server/server.ts",
@@ -33,6 +32,8 @@
     "bcryptjs": "^3.0.3",
     "better-auth": "^1.4.17",
     "cors": "^2.8.6",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
