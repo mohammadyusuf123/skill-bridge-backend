@@ -157,7 +157,6 @@ async getAllBookings(req: AuthRequest, res: Response, next: NextFunction): Promi
 
       const { bookingId } = req.params;
       const { tutorNotes } = req.body;
- console.log("tutorNotes",req.body,"bookingId",bookingId);
       const booking = await BookingService.markAsComplete(bookingId as string, req.user.id, tutorNotes);
       res.json(successResponse(booking, 'Booking marked as complete'));
     } catch (error) {
