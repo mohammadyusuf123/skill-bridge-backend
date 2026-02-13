@@ -148,46 +148,34 @@ async getAllBookings(req: AuthRequest, res: Response, next: NextFunction): Promi
   /**
    * Mark booking as complete (Tutor only)
    */
-   async markAsComplete(
-    req: AuthRequest,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
-    try {
-      // 1️⃣ Check auth
-      if (!req.user) {
-        throw new ApiError(401, "Not authenticated");
-      }
+async markAsComplete(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    console.log('REQ USER:', req.user);
+    console.log('REQ PARAMS:', req.params);
+    console.log('REQ BODY:', req.body);
 
-      // 2️⃣ Validate params
-      const { bookingId } = req.params;
-      if (!bookingId) {
-        throw new ApiError(400, "Booking ID is required");
-      }
+    if (!req.user) throw new Error('Not authenticated');
 
-      const { tutorNotes } = req.body;
+    const { bookingId } = req.params;
+    const { tutorNotes } = req.body;
 
-      // 3️⃣ Call service
-      const booking = await BookingService.markAsComplete(
-        bookingId as string,
-        req.user.id,
-        tutorNotes
-      );
+    const booking = await BookingService.markAsComplete(
+      bookingId as string,
+      req.user.id,
+      tutorNotes
+    );
 
-      res.status(200).json(
-        successResponse(booking, "Booking marked as complete")
-      );
-    } catch (error) {
-      // 4️⃣ Handle custom errors
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json(errorResponse(error.message));
-        return;
-      }
-
-      // 5️⃣ Unknown errors → pass to global handler
+    res.json(successResponse(booking, 'Booking marked as complete'));
+  } catch (error) {
+    console.error('MARK COMPLETE ERROR:', error);
+    if (error instanceof Error) {
+      res.status(400).json(errorResponse(error.message));
+    } else {
       next(error);
     }
   }
+}
+
 
 
   /**
