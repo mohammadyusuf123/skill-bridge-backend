@@ -330,33 +330,35 @@ async markAsComplete(
       throw new Error('Can only complete confirmed bookings');
     }
 
-    // ✅ Parse the session end datetime properly
+    // ✅ Parse session end time
     const [endHour, endMinute] = booking.endTime.split(':').map(Number);
     
-    // Get the date components from sessionDate
+    // ✅ Assuming times are stored in LOCAL timezone (e.g., Asia/Dhaka = UTC+6)
+    // Convert sessionDate to local date string
     const sessionDate = new Date(booking.sessionDate);
-    const year = sessionDate.getUTCFullYear();
-    const month = sessionDate.getUTCMonth();
-    const day = sessionDate.getUTCDate();
     
-    // Create session end datetime in UTC
-    const sessionEndDateTime = new Date(Date.UTC(year, month, day, endHour, endMinute, 0, 0));
+    // Get local date components (this uses server's timezone)
+    const year = sessionDate.getFullYear();
+    const month = sessionDate.getMonth();
+    const day = sessionDate.getDate();
     
-    // Get current time
+    // Create session end datetime in LOCAL timezone
+    const sessionEndDateTime = new Date(year, month, day, endHour, endMinute, 0, 0);
+    
+    // Get current time in LOCAL timezone
     const now = new Date();
     
-    // ✅ Add 15-minute grace period BEFORE session ends
-    // This allows marking complete up to 15 min before end time
+    // ✅ Add grace period: can mark complete 15 min BEFORE session ends
     const graceMinutes = 15;
     const sessionEndWithGrace = new Date(sessionEndDateTime.getTime() - (graceMinutes * 60 * 1000));
 
     console.log('=== DEBUGGING DATETIME ===');
     console.log('Session date from DB:', booking.sessionDate);
     console.log('Session end time:', booking.endTime);
-    console.log('Calculated end datetime (UTC):', sessionEndDateTime.toISOString());
-    console.log('End with grace period (UTC):', sessionEndWithGrace.toISOString());
-    console.log('Current datetime (UTC):', now.toISOString());
-    console.log('Time until end:', (sessionEndDateTime.getTime() - now.getTime()) / 1000 / 60, 'minutes');
+    console.log('Calculated end datetime (LOCAL):', sessionEndDateTime.toString());
+    console.log('End with grace period (LOCAL):', sessionEndWithGrace.toString());
+    console.log('Current datetime (LOCAL):', now.toString());
+    console.log('Time until end:', Math.round((sessionEndDateTime.getTime() - now.getTime()) / 1000 / 60), 'minutes');
     console.log('Can mark complete?:', now >= sessionEndWithGrace);
     console.log('========================');
 
